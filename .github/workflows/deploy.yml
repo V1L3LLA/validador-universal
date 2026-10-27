@@ -27,8 +27,9 @@ jobs:
           docker run --rm -v "$PWD:/src" -u $(id -u):$(id -g) emscripten/emsdk \
             emcc src/dni.c -o dist/validador.js \
             -sEXPORTED_FUNCTIONS=_validar \
-            -sEXPORTED_RUNTIME_METHODS=cwrap
-            
+            -sEXPORTED_RUNTIME_METHODS=cwrap \
+            -sMODULARIZE=1 \
+            -sEXPORT_NAME=createModule
 
       - uses: actions/configure-pages@v5
 
