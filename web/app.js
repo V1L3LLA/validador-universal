@@ -15,6 +15,15 @@ const form = $("form"), input = $("value"), result = $("result");
 
 let current = null;
 let busy = false;
+let wasmReadyResolve;
+const wasmReady = new Promise((resolve) => { wasmReadyResolve = resolve; });
+
+function notifyWasmReady() {
+  if (window.Module && typeof window.Module.cwrap === "function") wasmReadyResolve(true);
+}
+window.addEventListener("validador-ready", notifyWasmReady);
+// Cubre caso en que el módulo haya terminado de inicializarse antes de registrar listener.
+notifyWasmReady();
 
 /* ---------- Construir menú ---------- */
 const buttons = OPTIONS.map((o) => {
@@ -60,7 +69,6 @@ async function select(id) {
   if (busy) return;
   const opt = OPTIONS.find((o) => o.id === id);
 
-  // Ya en modo activo: solo cambiar de opción
   if (app.classList.contains("active")) {
     setCurrent(opt);
     return;
@@ -68,13 +76,10 @@ async function select(id) {
 
   busy = true;
   const btn = buttons.find((b) => b.dataset.id === id);
-
-  // 1) Se muestra solo la opción elegida
   btn.classList.add("picked");
   app.classList.add("picking");
   await wait(550);
 
-  // 2) El resto se recoloca a la izquierda
   flip([$("title"), ...buttons], () => {
     app.classList.remove("intro", "picking");
     app.classList.add("active");
@@ -107,15 +112,31 @@ function setCurrent(opt, animate = false) {
   input.focus({ preventScroll: true });
 }
 
-/* ---------- Enlace con el script en C ----------
-   Cuando exista el módulo C (p. ej. compilado a WebAssembly con Emscripten),
-   expón: window.UniversalValidator = { validate(type, value) -> {valid, message} }
-   Mientras tanto devuelve "pendiente".                                         */
+/*
+ * Interfaz C esperada:
+ *   int validar(const char *tipo, const char *valor)
+ * Devuelve 1 si válido y 0 si no válido.
+ * El workflow debe exportar _validar y cwrap.
+ */
+let cValidate = null;
 async function runValidator(type, value) {
-  if (window.UniversalValidator && typeof window.UniversalValidator.validate === "function") {
-    return await window.UniversalValidator.validate(type, value);
+  const ready = await Promise.race([
+    wasmReady.then(() => true),
+    wait(10000).then(() => false),
+  ]);
+
+  if (!ready || !window.Module || typeof window.Module.cwrap !== "function") {
+    return { valid: false, message: "No se pudo cargar validador.wasm. Comprueba publicación y compilación." };
   }
-  return { pending: true };
+
+  try {
+    if (!cValidate) cValidate = window.Module.cwrap("validar", "number", ["string", "string"]);
+    const valid = Number(cValidate(type, value)) === 1;
+    return { valid, message: valid ? "Válido" : "No válido" };
+  } catch (error) {
+    console.error("Error al llamar a validador C:", error);
+    return { valid: false, message: "Error al conectar con la función validar() de C. Comprueba su nombre y firma." };
+  }
 }
 
 form.addEventListener("submit", async (e) => {
@@ -124,18 +145,12 @@ form.addEventListener("submit", async (e) => {
   const value = input.value.trim();
   if (!value) { input.focus(); return; }
 
-  const res = await runValidator(current.id, value);
   result.hidden = false;
-  result.className = "result";
+  result.className = "result wait";
+  result.textContent = "Validando…";
 
-  if (res.pending) {
-    result.classList.add("wait");
-    result.textContent = "Script en C pendiente de conectar. Valor recibido: " + value;
-  } else if (res.valid) {
-    result.classList.add("ok");
-    result.textContent = res.message || "Válido";
-  } else {
-    result.classList.add("bad");
-    result.textContent = res.message || "No válido";
-  }
+  const res = await runValidator(current.id, value);
+  result.className = "result";
+  result.classList.add(res.valid ? "ok" : "bad");
+  result.textContent = res.message || (res.valid ? "Válido" : "No válido");
 });

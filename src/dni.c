@@ -1,10 +1,10 @@
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
 
 int main(void) {
+    int validar(const char tipo, const charvalor);
     char dni[20];
     const char letras[] = "TRWAGMYFPDXBNJZSQVHLCKE";
     long numero = 0;

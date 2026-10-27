@@ -33,6 +33,14 @@
     </section>
   </main>
 
+  <!-- Module debe definirse antes de cargar el JS generado por Emscripten. -->
+  <script>
+    window.Module = window.Module || {};
+    window.Module.onRuntimeInitialized = function () {
+      window.dispatchEvent(new Event("validador-ready"));
+    };
+  </script>
+  <script src="validador.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
