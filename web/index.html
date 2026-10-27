@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Validador universal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+
+  <main id="app" class="intro">
+    <aside id="sidebar">
+      <h1 id="title">Validador universal</h1>
+      <nav id="menu" aria-label="Tipo de validación"></nav>
+    </aside>
+
+    <section id="workspace" aria-live="polite" hidden>
+      <header class="ws-head">
+        <span class="ws-icon" id="ws-icon"></span>
+        <h2 id="ws-title"></h2>
+      </header>
+      <p id="ws-hint" class="ws-hint"></p>
+
+      <form id="form" autocomplete="off" novalidate>
+        <input id="value" type="text" inputmode="text" spellcheck="false" aria-label="Valor a validar">
+        <button type="submit">Validar</button>
+      </form>
+
+      <div id="result" class="result" role="status" hidden></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
