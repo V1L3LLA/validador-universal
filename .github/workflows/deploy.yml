@@ -25,7 +25,7 @@ jobs:
           mkdir -p dist
           cp web/* dist/
           docker run --rm -v "$PWD:/src" -u $(id -u):$(id -g) emscripten/emsdk \
-            emcc src/validador.c -o dist/validador.js \
+            emcc src/dni.c -o dist/validador.js \
             -sEXPORTED_RUNTIME_METHODS=cwrap
 
       - uses: actions/configure-pages@v5
