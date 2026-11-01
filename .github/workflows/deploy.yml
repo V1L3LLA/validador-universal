@@ -25,7 +25,7 @@ jobs:
           mkdir -p dist
           cp web/* dist/
           docker run --rm -v "$PWD:/src" -u $(id -u):$(id -g) emscripten/emsdk \
-            emcc src/dni.c -o dist/validador.js \
+            emcc src/validador.c -o dist/validador.js \
             -sEXPORTED_FUNCTIONS=_validar \
             -sEXPORTED_RUNTIME_METHODS=cwrap \
             -sMODULARIZE=1 \
