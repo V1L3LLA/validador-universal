@@ -28,6 +28,7 @@ int ean13_valido(const char *valor)
 
     return eandef == valor[12] - '0';
 }
+
 // Validador DNI
 int dni_valido(const char *valor){
     int dni, resto;
@@ -50,6 +51,6 @@ EMSCRIPTEN_KEEPALIVE
 int validar(const char *tipo, const char *valor)
 {
     if (strcmp(tipo, "ean13") == 0) return ean13_valido(valor);
-
+    if (strcmp(tipo, "dni") == 0) return dni_valido(valor);
     return 0;   // los otros tipos todavía no
 }
