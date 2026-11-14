@@ -58,6 +58,30 @@ body {
   backdrop-filter: blur(6px);
 }
 
+.credits {
+  position: fixed;
+  z-index: 3;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: .55rem 1rem;
+  border: 1px solid rgba(255, 255, 255, .55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .88);
+  color: var(--ink);
+  font-size: .9rem;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 5px 18px rgba(0, 0, 0, .14);
+  animation: creditsIntro 3.8s var(--ease) forwards;
+}
+@keyframes creditsIntro {
+  0% { opacity: 0; transform: translate(-50%, -10px); }
+  12%, 78% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -6px); }
+}
+
 /* ---------- Sidebar / menú ---------- */
 #sidebar {
   display: flex;
@@ -199,4 +223,5 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+  .credits { display: none; }
 }

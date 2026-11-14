@@ -12,6 +12,9 @@ const OPTIONS = [
 const $ = (id) => document.getElementById(id);
 const app = $("app"), menu = $("menu"), ws = $("workspace");
 const form = $("form"), input = $("value"), result = $("result");
+const credits = $("credits");
+
+credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
 let current = null;
 let busy = false;
