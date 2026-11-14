@@ -50,6 +50,30 @@ int ean13_valido(const char *valor)
     return eandef == valor[12] - '0';
 }
 
+// Validador de ISBN-13 (prefijos 978 o 979).
+int isbn13_valido(const char *valor)
+{
+    int digitos[12], suma = 0;
+
+    if (strlen(valor) != 13) return 0;
+    if (strncmp(valor, "978", 3) != 0 && strncmp(valor, "979", 3) != 0)
+        return 0;
+
+    for (int i = 0; i < 13; i++)
+    {
+        if (!isdigit((unsigned char) valor[i])) return 0;
+    }
+
+    for (int i = 0; i < 12; i++)
+    {
+        digitos[i] = valor[i] - '0';
+        suma += digitos[i] * (i % 2 == 0 ? 1 : 3);
+    }
+
+    int digito_control = (10 - (suma % 10)) % 10;
+    return digito_control == valor[12] - '0';
+}
+
 // Validador DNI
 int dni_valido(const char *valor){
     int dni, resto;
@@ -129,6 +153,7 @@ EMSCRIPTEN_KEEPALIVE
 int validar(const char *tipo, const char *valor)
 {
     if (strcmp(tipo, "ean13") == 0) return ean13_valido(valor);
+    if (strcmp(tipo, "isbn13") == 0) return isbn13_valido(valor);
     if (strcmp(tipo, "dni") == 0) return dni_valido(valor);
     if (strcmp(tipo, "iban") == 0) return iban_valido(valor);
     if (strcmp(tipo, "luhn") == 0) return luhn_valido(valor);
