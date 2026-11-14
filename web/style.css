@@ -233,26 +233,32 @@ body {
     flex-direction: column;
   }
   #app.active #sidebar {
-    position: relative;
+    position: static;
     inset: auto;
     width: calc(100% - 24px);
     margin: 0 auto;
     padding: 1rem;
     gap: .8rem;
+    flex: none;
+    z-index: 1;
   }
   #app.active #title { padding: .2rem .35rem; }
   #app.active #menu { flex-direction: row; flex-wrap: wrap; gap: .35rem; }
   #app.active .opt { width: auto; padding: .5rem .65rem; font-size: .86rem; }
   #app.active .opt .dot { width: 1.45rem; height: 1.45rem; }
   #workspace {
-    position: relative;
+    position: static;
     top: auto;
     left: auto;
     right: auto;
+    margin-left: 16px;
+    margin-right: 16px;
     align-self: auto;
     width: auto;
-    margin: 1.5rem 16px 0;
+    margin-top: 1.5rem;
     padding: 0;
+    flex: none;
+    z-index: 0;
   }
   #form { border-radius: 18px; }
   #value { font-size: 1rem; }
