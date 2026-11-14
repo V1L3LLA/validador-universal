@@ -39,6 +39,25 @@ body {
   justify-content: center;
 }
 
+.privacy-note {
+  position: fixed;
+  z-index: 2;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  max-width: calc(100vw - 32px);
+  padding: .45rem .8rem;
+  border: 1px solid rgba(255, 255, 255, .55);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .82);
+  color: #394354;
+  font-size: .78rem;
+  line-height: 1.35;
+  text-align: center;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .1);
+  backdrop-filter: blur(6px);
+}
+
 /* ---------- Sidebar / menú ---------- */
 #sidebar {
   display: flex;
