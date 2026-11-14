@@ -14,13 +14,14 @@ body {
   font-family: "Nunito", system-ui, sans-serif;
   color: var(--ink);
   overflow: hidden;
+  background: #2b5a63;
 }
 
 /* Fondo paisaje (CSS puro). Cambia por tu imagen: background: url(fondo.jpg) center/cover; */
 .bg {
   position: fixed; inset: 0; z-index: -1;
   background:
-    radial-gradient(circle at 50% 62%, #f3a98a 0, rgba(243, 169, 138, 0) 28%),
+    radial-gradient(ellipse at 50% 62%, rgba(243, 169, 138, .95) 0, rgba(243, 169, 138, 0) 34%),
     linear-gradient(180deg, #7fb0c4 0%, #bcd3d8 38%, #e8c4b0 58%, #3f7a80 59%, #2b5a63 100%);
 }
 .bg::before, .bg::after {
@@ -74,7 +75,7 @@ body {
   font-weight: 700;
   text-align: center;
   box-shadow: 0 5px 18px rgba(0, 0, 0, .14);
-  animation: creditsIntro 3.8s var(--ease) forwards;
+  animation: creditsIntro 10s var(--ease) forwards;
 }
 @keyframes creditsIntro {
   0% { opacity: 0; transform: translate(-50%, -10px); }
@@ -142,6 +143,7 @@ body {
   justify-content: flex-start;
   gap: 1.2rem;
   padding: 1.4rem 1rem;
+  border: 1px solid rgba(255, 255, 255, .65);
   border-radius: 18px;
   background: var(--panel);
   box-shadow: 0 10px 40px rgba(0, 0, 0, .2);
@@ -170,6 +172,7 @@ body {
   margin-right: auto;
   padding-left: 2rem;
   color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, .08);
 }
 #workspace.enter { animation: wsIn .6s .15s var(--ease) both; }
 @keyframes wsIn { from { opacity: 0; transform: translateY(14px); } }
@@ -185,8 +188,10 @@ body {
 #form {
   display: flex; gap: .6rem;
   padding: .45rem; border-radius: 999px;
-  background: rgba(255, 255, 255, .85);
+  background: rgba(255, 255, 255, .92);
   backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  transition: box-shadow .2s var(--ease);
 }
 #value {
   flex: 1; min-width: 0;
@@ -200,13 +205,16 @@ body {
   padding: .7rem 1.4rem; border: 0; border-radius: 999px;
   background: var(--blue); color: #fff;
   font: inherit; font-weight: 700; cursor: pointer;
-  transition: filter .2s;
+  box-shadow: 0 3px 8px rgba(10, 124, 255, .24);
+  transition: filter .2s, transform .2s var(--ease), box-shadow .2s;
 }
-#form button:hover { filter: brightness(1.1); }
+#form button:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 5px 12px rgba(10, 124, 255, .3); }
+#form button:active { transform: translateY(0); }
 
 .result {
   margin-top: 1rem; padding: .9rem 1.2rem; border-radius: 16px;
-  background: #fff; color: var(--ink); font-weight: 700;
+  background: rgba(255, 255, 255, .96); color: var(--ink); font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
   animation: wsIn .4s var(--ease);
 }
 .result.ok  { border-left: 6px solid #22b573; }
@@ -215,10 +223,48 @@ body {
 
 /* ---------- Móvil ---------- */
 @media (max-width: 720px) {
-  #app.active #sidebar { width: auto; right: 16px; bottom: auto; flex-direction: column; padding: 1rem; }
-  #app.active #menu { flex-direction: row; flex-wrap: wrap; }
-  #app.active .opt { width: auto; }
-  #workspace { width: auto; margin: 0; padding: 0 16px; position: absolute; top: 330px; left: 0; right: 0; }
+  body { overflow-x: hidden; overflow-y: auto; }
+  #app { min-height: 100%; height: auto; padding: 2rem 0 5rem; }
+  #app.active {
+    min-height: 100vh;
+    height: auto;
+    padding: 1rem 0 5rem;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  #app.active #sidebar {
+    position: relative;
+    inset: auto;
+    width: calc(100% - 24px);
+    margin: 0 auto;
+    padding: 1rem;
+    gap: .8rem;
+  }
+  #app.active #title { padding: .2rem .35rem; }
+  #app.active #menu { flex-direction: row; flex-wrap: wrap; gap: .35rem; }
+  #app.active .opt { width: auto; padding: .5rem .65rem; font-size: .86rem; }
+  #app.active .opt .dot { width: 1.45rem; height: 1.45rem; }
+  #workspace {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    align-self: auto;
+    width: auto;
+    margin: 1.5rem 16px 0;
+    padding: 0;
+  }
+  #form { border-radius: 18px; }
+  #value { font-size: 1rem; }
+  #form button { padding: .65rem 1rem; }
+  .credits { top: 10px; font-size: .82rem; }
+  .privacy-note { bottom: 8px; font-size: .72rem; }
+}
+
+@media (max-width: 380px) {
+  #app.active .opt { flex: 1 1 calc(50% - .35rem); }
+  #form { gap: .25rem; padding: .35rem; }
+  #form button { padding: .6rem .8rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
