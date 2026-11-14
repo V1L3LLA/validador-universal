@@ -1,5 +1,8 @@
 name: Compilar C y publicar
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     branches: [main]
