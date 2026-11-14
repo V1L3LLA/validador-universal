@@ -3,7 +3,22 @@
 #include <ctype.h>
 #include <emscripten.h>
 
+// Elimina espacios y guiones, y convierte las letras a mayúsculas.
+static int normalizar(const char *valor, char *limpia, int capacidad)
+{
+    int longitud = 0;
 
+    for (int i = 0; valor[i] != '\0'; i++)
+    {
+        unsigned char caracter = (unsigned char) valor[i];
+        if (isspace(caracter) || caracter == '-') continue;
+        if (longitud >= capacidad - 1) return -1;
+        limpia[longitud++] = (char) toupper(caracter);
+    }
+
+    limpia[longitud] = '\0';
+    return longitud;
+}
 
 // Validador de EAN-13
 int ean13_valido(const char *valor)
@@ -58,23 +73,6 @@ int dni_valido(const char *valor){
     }
 }
 
-// Elimina espacios y guiones, y convierte las letras a mayúsculas.
-static int normalizar(const char *valor, char *limpia, int capacidad)
-{
-    int longitud = 0;
-
-    for (int i = 0; valor[i] != '\0'; i++)
-    {
-        unsigned char caracter = (unsigned char) valor[i];
-        if (isspace(caracter) || caracter == '-') continue;
-        if (longitud >= capacidad - 1) return -1;
-        limpia[longitud++] = (char) toupper(caracter);
-    }
-
-    limpia[longitud] = '\0';
-    return longitud;
-}
-
 // Validador de IBAN español mediante el algoritmo módulo 97.
 int iban_valido(const char *valor)
 {
@@ -87,8 +85,6 @@ int iban_valido(const char *valor)
         if (!isdigit((unsigned char) limpio[i])) return 0;
     }
 
-    // Reordena los cuatro primeros caracteres al final y calcula el resto
-    // incrementalmente para evitar números demasiado grandes.
     int resto = 0;
     for (int i = 4; i < 24; i++)
         resto = (resto * 10 + (limpio[i] - '0')) % 97;
@@ -136,5 +132,5 @@ int validar(const char *tipo, const char *valor)
     if (strcmp(tipo, "dni") == 0) return dni_valido(valor);
     if (strcmp(tipo, "iban") == 0) return iban_valido(valor);
     if (strcmp(tipo, "luhn") == 0) return luhn_valido(valor);
-    return 0;   // los otros tipos todavía no
+    return 0;   
 }
