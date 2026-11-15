@@ -144,6 +144,44 @@ int nie_valido(const char *valor)
     return letra == letras[numero % 23];
 }
 
+// Calcula la letra de un DNI (8 dígitos) o NIE (X/Y/Z + 7 dígitos).
+EMSCRIPTEN_KEEPALIVE
+const char *calcular_control(const char *valor)
+{
+    static char resultado[2];
+    const char letras[] = "TRWAGMYFPDXBNJZSQVHLCKE";
+    int numero = 0;
+    size_t longitud = strlen(valor);
+
+    if (longitud == 8 && isdigit((unsigned char) valor[0]))
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if (!isdigit((unsigned char) valor[i])) return "";
+            numero = numero * 10 + (valor[i] - '0');
+        }
+    }
+    else if (longitud == 8 && toupper((unsigned char) valor[0]) >= 'X'
+             && toupper((unsigned char) valor[0]) <= 'Z')
+    {
+        // NIE: prefijo X/Y/Z y siete dígitos.
+        numero = toupper((unsigned char) valor[0]) - 'X';
+        for (int i = 1; i < 8; i++)
+        {
+            if (!isdigit((unsigned char) valor[i])) return "";
+            numero = numero * 10 + (valor[i] - '0');
+        }
+    }
+    else
+    {
+        return "";
+    }
+
+    resultado[0] = letras[numero % 23];
+    resultado[1] = '\0';
+    return resultado;
+}
+
 // Validador de IBAN español mediante el algoritmo módulo 97.
 int iban_valido(const char *valor)
 {

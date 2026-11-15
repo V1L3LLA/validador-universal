@@ -13,6 +13,7 @@ const $ = (id) => document.getElementById(id);
 const app = $("app"), menu = $("menu"), ws = $("workspace");
 const form = $("form"), input = $("value"), result = $("result");
 const credits = $("credits");
+const dniTools = $("dni-tools"), dniMode = $("dni-mode");
 
 credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
@@ -99,6 +100,8 @@ function setCurrent(opt, animate = false) {
 
   $("ws-title").textContent = opt.label;
   $("ws-hint").textContent = opt.hint;
+  dniTools.hidden = opt.id !== "dni";
+  dniMode.value = "validate";
   const icon = $("ws-icon");
   icon.style.background = opt.color;
   icon.textContent = opt.tag;
@@ -115,6 +118,14 @@ function setCurrent(opt, animate = false) {
   input.focus({ preventScroll: true });
 }
 
+dniMode.addEventListener("change", () => {
+  const calculating = dniMode.value === "calculate";
+  input.placeholder = calculating ? "8 dígitos o X/Y/Z + 7 dígitos" : current.placeholder;
+  $("ws-hint").textContent = calculating
+    ? "Introduce solo los números del DNI o NIE, sin la letra."
+    : current.hint;
+});
+
 /*
  * Interfaz C esperada:
  *   int validar(const char *tipo, const char *valor)
@@ -122,6 +133,7 @@ function setCurrent(opt, animate = false) {
  * El workflow debe exportar _validar y cwrap.
  */
 let cValidate = null;
+let cCalculate = null;
 async function runValidator(type, value) {
   const ready = await Promise.race([
     wasmReady.then(() => true),
@@ -133,6 +145,14 @@ async function runValidator(type, value) {
   }
 
   try {
+    if (type === "dni" && dniMode.value === "calculate") {
+      if (!cCalculate) cCalculate = window.Module.cwrap("calcular_control", "string", ["string"]);
+      const letter = cCalculate(value);
+      return letter
+        ? { valid: true, message: `La letra de control es: ${letter}` }
+        : { valid: false, message: "Introduce 8 dígitos (DNI) o el prefijo X/Y/Z y 7 dígitos (NIE)." };
+    }
+
     if (!cValidate) cValidate = window.Module.cwrap("validar", "number", ["string", "string"]);
     const valid = Number(cValidate(type, value)) === 1;
     return { valid, message: valid ? "Válido" : "No válido" };

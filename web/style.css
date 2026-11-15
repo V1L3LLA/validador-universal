@@ -185,6 +185,26 @@ body {
 }
 .ws-hint { margin-bottom: 1.2rem; font-size: .95rem; opacity: .92; text-shadow: 0 1px 8px rgba(0, 0, 0, .35); }
 
+.dni-tools {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  margin: 0 0 .65rem .25rem;
+  color: #fff;
+  font-size: .85rem;
+}
+.dni-tools[hidden] { display: none; }
+.dni-tools select {
+  padding: .35rem .65rem;
+  border: 1px solid rgba(255, 255, 255, .65);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .9);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 700;
+}
+.dni-tools select:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
 #form {
   display: flex; gap: .6rem;
   padding: .45rem; border-radius: 999px;

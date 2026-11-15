@@ -27,6 +27,14 @@
       </header>
       <p id="ws-hint" class="ws-hint"></p>
 
+      <div id="dni-tools" class="dni-tools" hidden>
+        <label for="dni-mode">¿Qué quieres hacer?</label>
+        <select id="dni-mode">
+          <option value="validate">Validar DNI/NIE</option>
+          <option value="calculate">Calcular letra</option>
+        </select>
+      </div>
+
       <form id="form" autocomplete="off" novalidate>
         <input id="value" type="text" inputmode="text" spellcheck="false" aria-label="Valor a validar">
         <button type="submit">Validar</button>
