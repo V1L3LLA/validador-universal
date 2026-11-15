@@ -143,6 +143,11 @@ body {
   background: #fff;
   box-shadow: 0 13px 30px rgba(5, 15, 35, .2);
 }
+.experiment-menu-option .dot {
+  background: linear-gradient(145deg, #31466c, #5878b5);
+  font-size: .58rem;
+  letter-spacing: -.04em;
+}
 .opt:focus-visible, .dni-tools select:focus-visible, #form button:focus-visible {
   outline: 3px solid #9ec5ff;
   outline-offset: 3px;
@@ -400,60 +405,67 @@ body {
   font-size: .83rem;
   line-height: 1.55;
 }
+.info-content { white-space: pre-line; }
 .info-content p + p { margin-top: .65rem; }
 .info-content ul { display: grid; gap: .35rem; margin: .7rem 0 .7rem 1.2rem; }
 .info-content strong { color: #283b5b; }
-.experiment-controls {
-  display: flex;
+.experiment-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 1.3fr);
   align-items: center;
-  flex-wrap: wrap;
-  gap: .55rem;
-  margin-top: .85rem;
+  gap: .6rem .8rem;
+  margin: .25rem 0 1rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f1;
+  border-radius: 15px;
+  background: #f8faff;
 }
-.experiment-controls label {
-  flex-basis: 100%;
+.experiment-form label {
   color: #34445e;
   font-size: .8rem;
   font-weight: 800;
 }
-.experiment-controls input {
-  width: 92px;
+.experiment-format-hint { grid-column: 1 / -1; margin-top: -.3rem; }
+.experiment-form select, .experiment-form input {
+  width: 100%;
   padding: .55rem .65rem;
   border: 1px solid #d8e0ed;
   border-radius: 10px;
   background: #fff;
   color: var(--ink);
   font: inherit;
+  font-size: .83rem;
 }
-.experiment-controls button {
-  padding: .58rem .85rem;
+.experiment-form button {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: .62rem 1rem;
   border: 0;
   border-radius: 10px;
   background: #243b63;
   color: #fff;
   font: inherit;
-  font-size: .8rem;
+  font-size: .83rem;
   font-weight: 800;
   cursor: pointer;
 }
-.experiment-controls button:hover { background: #315082; }
-.experiment-controls button:disabled { opacity: .6; cursor: wait; }
-.experiment-status { margin-top: .65rem; color: #40516b; font-size: .78rem; }
-.table-scroll { margin-top: .65rem; overflow-x: auto; }
-.experiment-table {
-  width: 100%;
-  border-collapse: collapse;
-  color: #394860;
-  font-size: .76rem;
-  text-align: left;
+.experiment-form button:hover { background: #315082; }
+.experiment-form button:disabled { opacity: .6; cursor: wait; }
+.experiment-help { margin-top: .65rem; color: #526078; font-size: .8rem; line-height: 1.5; }
+.experiment-status { margin-top: .65rem; color: #40516b; font-size: .8rem; }
+.experiment-result {
+  margin-top: .65rem;
+  padding: .85rem 1rem;
+  border: 1px solid #dce5f2;
+  border-left: 4px solid #19a878;
+  border-radius: 12px;
+  background: #fff;
+  color: #283b5b;
+  font-size: .84rem;
+  font-weight: 700;
+  line-height: 1.65;
+  white-space: pre-line;
 }
-.experiment-table th, .experiment-table td {
-  padding: .5rem .55rem;
-  border-bottom: 1px solid #e2e8f1;
-  white-space: nowrap;
-}
-.experiment-table th { color: #29436f; font-weight: 800; }
-.experiment-table tbody tr:last-child td { border-bottom: 0; }
 
 /* Adaptación móvil */
 @media (max-width: 720px) {
@@ -498,6 +510,9 @@ body {
   #form button { padding: .6rem .9rem; }
   .credits { top: 10px; font-size: .8rem; }
   .privacy-note { bottom: 8px; font-size: .7rem; }
+  .experiment-form { grid-template-columns: 1fr; gap: .35rem; }
+  .experiment-form label:not(:first-child) { margin-top: .55rem; }
+  .experiment-form button { width: 100%; margin-top: .45rem; }
 }
 
 @media (max-width: 380px) {

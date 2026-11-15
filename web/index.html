@@ -27,61 +27,48 @@
       </header>
       <p id="ws-hint" class="ws-hint"></p>
 
-      <div id="control-tools" class="dni-tools">
-        <label for="dni-mode">¿Qué quieres hacer?</label>
-        <select id="dni-mode">
-          <option value="validate">Validar</option>
-          <option value="calculate">Calcular dígito de control</option>
-        </select>
+      <div id="validator-view">
+        <div id="control-tools" class="dni-tools">
+          <label for="dni-mode">¿Qué quieres hacer?</label>
+          <select id="dni-mode">
+            <option value="validate">Validar</option>
+            <option value="calculate">Calcular dígito de control</option>
+          </select>
+        </div>
+
+        <form id="form" autocomplete="off" novalidate>
+          <input id="value" type="text" inputmode="text" spellcheck="false" aria-label="Valor a validar">
+          <button type="submit">Validar</button>
+        </form>
+
+        <div id="result" class="result" role="status" hidden></div>
+        <div id="explanation" class="explanation" role="status" hidden></div>
       </div>
 
-      <form id="form" autocomplete="off" novalidate>
-        <input id="value" type="text" inputmode="text" spellcheck="false" aria-label="Valor a validar">
-        <button type="submit">Validar</button>
-      </form>
+      <div id="experiment-view" hidden>
+        <div class="experiment-form">
+          <label for="experiment-format">Formato que se va a probar</label>
+          <select id="experiment-format"></select>
+          <p id="experiment-format-hint" class="experiment-help experiment-format-hint"></p>
 
-      <div id="result" class="result" role="status" hidden></div>
-      <div id="explanation" class="explanation" role="status" hidden></div>
+          <label for="experiment-error">Tipo de error que se va a introducir</label>
+          <select id="experiment-error">
+            <option value="substitution">Cambio de un dígito</option>
+            <option value="transposition">Intercambio de dígitos contiguos</option>
+          </select>
 
-      <details class="info-panel">
+          <label for="experiment-count">Número de pruebas</label>
+          <input id="experiment-count" type="number" min="1" max="1000" step="1" value="100">
+          <button id="run-experiment" type="button">Ejecutar pruebas</button>
+        </div>
+        <p class="experiment-help">Se generan ejemplos sintéticos con un control correcto y se altera el dato elegido. No son números personales ni se envían a ningún servidor. Un control correcto tampoco significa que el documento o la cuenta existan.</p>
+        <p id="experiment-status" class="experiment-status" role="status" aria-live="polite"></p>
+        <div id="experiment-result" class="experiment-result" hidden></div>
+      </div>
+
+      <details id="how-panel" class="info-panel">
         <summary>¿Cómo funciona?</summary>
-        <div class="info-content">
-          <p>Los dígitos de control se calculan con reglas matemáticas. Ayudan a detectar errores al escribir un código, pero no demuestran que un documento, libro, cuenta o tarjeta exista.</p>
-          <ul>
-            <li><strong>DNI/NIE:</strong> el resto de dividir el número entre 23 selecciona una letra de control.</li>
-            <li><strong>ISBN-10:</strong> suma ponderada módulo 11; el control puede ser X.</li>
-            <li><strong>ISBN-13 y EAN-13:</strong> suma ponderada con pesos 1 y 3; se completa hasta un múltiplo de 10.</li>
-            <li><strong>IBAN español:</strong> se reordenan los caracteres y se comprueba que el resto módulo 97 sea 1.</li>
-            <li><strong>Tarjeta (Luhn):</strong> se duplican dígitos alternos desde la derecha y la suma debe ser múltiplo de 10.</li>
-          </ul>
-          <p>En cada validación se muestran los pasos y el resultado concreto del cálculo.</p>
-        </div>
-      </details>
-
-      <details class="info-panel experiment-panel">
-        <summary>Modo experimento: ¿qué errores detecta?</summary>
-        <div class="info-content">
-          <p>La aplicación genera códigos sintéticos con un control correcto, altera un dígito o intercambia dos dígitos contiguos y vuelve a validarlos. No se usan ni se envían datos personales.</p>
-          <p>El porcentaje es la proporción de errores introducidos que el algoritmo detectó en estas pruebas; depende de los errores simulados y no representa todos los casos posibles.</p>
-          <div class="experiment-controls">
-            <label for="experiment-count">Pruebas por tipo de error y formato</label>
-            <input id="experiment-count" type="number" min="10" max="500" step="10" value="100">
-            <button id="run-experiment" type="button">Ejecutar experimento</button>
-          </div>
-          <p id="experiment-status" class="experiment-status" role="status" aria-live="polite"></p>
-          <div class="table-scroll">
-            <table class="experiment-table">
-              <thead>
-                <tr>
-                  <th>Formato</th>
-                  <th>Cambio de un dígito</th>
-                  <th>Intercambio contiguo</th>
-                </tr>
-              </thead>
-              <tbody id="experiment-results"></tbody>
-            </table>
-          </div>
-        </div>
+        <div id="how-content" class="info-content"></div>
       </details>
     </section>
 

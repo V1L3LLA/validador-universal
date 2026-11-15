@@ -15,7 +15,7 @@ La interfaz ofrece estas opciones:
 
 La aplicación valida DNI/NIE, ISBN-10, ISBN-13, EAN-13, IBAN español y números de tarjeta con Luhn. También permite calcular sus dígitos de control y explica los pasos del cálculo.
 
-Incluye una sección «¿Cómo funciona?» y un modo experimento que genera códigos sintéticos, altera dígitos o intercambia posiciones contiguas y muestra qué porcentaje de esos errores detecta cada validador. Los porcentajes dependen de los errores simulados y no representan todos los casos posibles.
+Incluye una sección «¿Cómo funciona?» específica para el formato seleccionado y un modo experimento. En este modo se elige el formato, el tipo de error (cambio de un dígito o intercambio de dígitos contiguos) y el número de pruebas. La aplicación genera códigos sintéticos y muestra cuántos errores detectó y qué porcentaje representan. Los resultados dependen de los errores simulados y no representan todos los casos posibles.
 
 ## Tecnologías
 

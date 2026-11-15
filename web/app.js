@@ -15,10 +15,23 @@ const form = $("form"), input = $("value"), result = $("result");
 const explanation = $("explanation");
 const credits = $("credits");
 const controlTools = $("control-tools"), dniMode = $("dni-mode");
+const validatorView = $("validator-view"), experimentView = $("experiment-view");
+const experimentFormat = $("experiment-format"), experimentError = $("experiment-error");
+const experimentFormatHint = $("experiment-format-hint");
 const experimentButton = $("run-experiment");
 const experimentCount = $("experiment-count");
 const experimentStatus = $("experiment-status");
-const experimentResults = $("experiment-results");
+const experimentResult = $("experiment-result");
+const howContent = $("how-content");
+
+const HOW_INFO = {
+  dni: "DNI/NIE — Se divide el número entre 23. El resto, entre 0 y 22, indica una posición en la secuencia TRWAGMYFPDXBNJZSQVHLCKE y determina la letra de control. Para el NIE, X, Y y Z se sustituyen por 0, 1 y 2 antes de dividir.",
+  isbn10: "ISBN-10 — Se multiplica cada dígito por un peso descendente del 10 al 1 y se suman los productos. El código es válido si la suma es divisible entre 11. La X final representa el valor 10.",
+  isbn13: "ISBN-13 — Se multiplican los primeros 12 dígitos alternando pesos 1 y 3. El control es el dígito que completa la suma hasta un múltiplo de 10. Un ISBN-13 empieza por 978 o 979.",
+  ean13: "EAN-13 — Se multiplican los primeros 12 dígitos alternando pesos 1 y 3. El último dígito completa la suma hasta un múltiplo de 10.",
+  iban: "IBAN español — Se mueven los cuatro primeros caracteres al final y se convierten las letras en números (A=10, B=11, …). El IBAN es válido si el número resultante deja resto 1 al dividir entre 97.",
+  luhn: "Tarjeta (Luhn) — Desde la derecha se duplican dígitos alternos; si un resultado supera 9, se le resta 9. Se suman los valores y el número pasa Luhn si el total es múltiplo de 10."
+};
 
 credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
@@ -55,6 +68,51 @@ const buttons = OPTIONS.map((o) => {
   return b;
 });
 
+const experimentMenuButton = document.createElement("button");
+experimentMenuButton.type = "button";
+experimentMenuButton.className = "opt experiment-menu-option";
+experimentMenuButton.dataset.id = "experiment";
+const experimentMenuTag = document.createElement("span");
+experimentMenuTag.className = "dot";
+experimentMenuTag.textContent = "EXP";
+const experimentMenuLabel = document.createElement("span");
+experimentMenuLabel.textContent = "Modo experimento";
+experimentMenuButton.append(experimentMenuTag, experimentMenuLabel);
+experimentMenuButton.addEventListener("click", () => select("experiment"));
+menu.append(experimentMenuButton);
+
+OPTIONS.forEach((option) => {
+  const item = document.createElement("option");
+  item.value = option.id;
+  item.textContent = option.label;
+  experimentFormat.append(item);
+});
+
+function updateHowContent(type) {
+  howContent.textContent = HOW_INFO[type] || "";
+}
+
+function selectExperimentFormat() {
+  const option = OPTIONS.find((item) => item.id === experimentFormat.value);
+  if (!option) return;
+  experimentResult.hidden = true;
+  experimentStatus.textContent = "";
+  $("ws-title").textContent = `Experimento · ${option.label}`;
+  $("ws-icon").style.background = option.color;
+  $("ws-icon").textContent = option.tag;
+  experimentFormatHint.textContent = `Se probará: ${option.label}. Se generarán ejemplos sintéticos y se comprobará si el algoritmo detecta el error seleccionado.`;
+  updateHowContent(option.id);
+}
+experimentFormat.addEventListener("change", selectExperimentFormat);
+experimentError.addEventListener("change", () => {
+  experimentResult.hidden = true;
+  experimentStatus.textContent = "";
+});
+experimentCount.addEventListener("input", () => {
+  experimentResult.hidden = true;
+  experimentStatus.textContent = "";
+});
+
 /* ---------- FLIP: mover elementos con transición fluida ---------- */
 function flip(els, change, duration = 650) {
   const first = els.map((e) => e.getBoundingClientRect());
@@ -76,35 +134,43 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 /* ---------- Selección ---------- */
 async function select(id) {
   if (busy) return;
-  const opt = OPTIONS.find((o) => o.id === id);
+  const opt = id === "experiment" ? null : OPTIONS.find((o) => o.id === id);
 
   if (app.classList.contains("active")) {
-    setCurrent(opt);
+    if (id === "experiment") setExperimentMode();
+    else if (opt) setCurrent(opt);
     return;
   }
 
   busy = true;
-  const btn = buttons.find((b) => b.dataset.id === id);
+  const btn = id === "experiment"
+    ? experimentMenuButton
+    : buttons.find((b) => b.dataset.id === id);
   btn.classList.add("picked");
   app.classList.add("picking");
   await wait(550);
 
-  flip([$("title"), ...buttons], () => {
+  flip([$("title"), ...buttons, experimentMenuButton], () => {
     app.classList.remove("intro", "picking");
     app.classList.add("active");
     btn.classList.remove("picked");
   });
 
-  setCurrent(opt, true);
+  if (id === "experiment") setExperimentMode(true);
+  else setCurrent(opt, true);
   busy = false;
 }
 
 function setCurrent(opt, animate = false) {
   current = opt;
   buttons.forEach((b) => b.classList.toggle("current", b.dataset.id === opt.id));
+  experimentMenuButton.classList.remove("current");
+  validatorView.hidden = false;
+  experimentView.hidden = true;
 
   $("ws-title").textContent = opt.label;
   $("ws-hint").textContent = opt.hint;
+  $("ws-hint").hidden = false;
   dniMode.value = "validate";
   controlTools.hidden = false;
   const icon = $("ws-icon");
@@ -115,6 +181,7 @@ function setCurrent(opt, animate = false) {
   input.value = "";
   result.hidden = true;
   explanation.hidden = true;
+  updateHowContent(opt.id);
 
   ws.hidden = false;
   if (animate) {
@@ -123,6 +190,26 @@ function setCurrent(opt, animate = false) {
     ws.classList.add("enter");
   }
   input.focus({ preventScroll: true });
+}
+
+function setExperimentMode(animate = false) {
+  current = null;
+  buttons.forEach((b) => b.classList.remove("current"));
+  experimentMenuButton.classList.add("current");
+  validatorView.hidden = true;
+  experimentView.hidden = false;
+  $("ws-hint").hidden = true;
+  dniMode.value = "validate";
+  experimentResult.hidden = true;
+  experimentStatus.textContent = "";
+  experimentFormat.value = "dni";
+  selectExperimentFormat();
+  ws.hidden = false;
+  if (animate) {
+    ws.classList.remove("enter");
+    void ws.offsetWidth;
+    ws.classList.add("enter");
+  }
 }
 
 dniMode.addEventListener("change", () => {
@@ -240,7 +327,7 @@ function corruptCode(code, type, errorType) {
 
 async function runExperiment() {
   experimentButton.disabled = true;
-  experimentResults.replaceChildren();
+  experimentResult.hidden = true;
   experimentStatus.textContent = "Cargando el validador…";
 
   try {
@@ -254,35 +341,36 @@ async function runExperiment() {
     if (!cValidate) cValidate = window.Module.cwrap("validar", "number", ["string", "string"]);
     if (!cCalculate) cCalculate = window.Module.cwrap("calcular_digito", "string", ["string", "string"]);
 
-    const trials = Math.max(10, Math.min(500, Math.floor(Number(experimentCount.value) || 100)));
+    const trials = Math.max(1, Math.min(1000, Math.floor(Number(experimentCount.value) || 100)));
     experimentCount.value = trials;
-    experimentStatus.textContent = `Ejecutando ${trials} pruebas de cada tipo de error para cada formato…`;
+    const type = experimentFormat.value;
+    const errorType = experimentError.value;
+    const option = OPTIONS.find((item) => item.id === type);
+    const errorLabel = errorType === "substitution"
+      ? "cambio de un dígito"
+      : "intercambio de dígitos contiguos";
+    experimentStatus.textContent = `Probando ${option.label} con ${errorLabel}…`;
 
-    for (const option of OPTIONS) {
-      const results = {};
-      for (const errorType of ["substitution", "transposition"]) {
-        let detected = 0, completed = 0;
-        while (completed < trials) {
-          const validCode = makeSyntheticCode(option.id);
-          const corrupted = corruptCode(validCode, option.id, errorType);
-          if (corrupted === null) continue;
-          if (Number(cValidate(option.id, corrupted)) !== 1) detected++;
-          completed++;
-        }
-        results[errorType] = `${detected}/${trials} (${(detected * 100 / trials).toFixed(1)} %)`;
-      }
-
-      const row = document.createElement("tr");
-      [option.label, results.substitution, results.transposition].forEach((text) => {
-        const cell = document.createElement("td");
-        cell.textContent = text;
-        row.append(cell);
-      });
-      experimentResults.append(row);
+    let detected = 0, completed = 0;
+    while (completed < trials) {
+      const validCode = makeSyntheticCode(type);
+      const corrupted = corruptCode(validCode, type, errorType);
+      if (corrupted === null) continue;
+      if (Number(cValidate(type, corrupted)) !== 1) detected++;
+      completed++;
     }
 
-    experimentStatus.textContent =
-      `Experimento terminado. Cada porcentaje es errores detectados / ${trials} errores introducidos.`;
+    const missed = trials - detected;
+    const percentage = (detected * 100 / trials).toFixed(1);
+    experimentResult.textContent = [
+      `Formato probado: ${option.label}.`,
+      `Error introducido: ${errorLabel}.`,
+      `Pruebas realizadas: ${trials}.`,
+      `Errores detectados: ${detected} de ${trials} (${percentage} %).`,
+      `Errores no detectados: ${missed} de ${trials}.`
+    ].join("\n");
+    experimentResult.hidden = false;
+    experimentStatus.textContent = "Experimento terminado. Los porcentajes describen solo estas pruebas aleatorias.";
   } catch (error) {
     console.error("Error en el modo experimento:", error);
     experimentStatus.textContent = error.message || "No se pudo completar el experimento.";
