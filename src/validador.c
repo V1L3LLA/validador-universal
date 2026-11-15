@@ -74,6 +74,32 @@ int isbn13_valido(const char *valor)
     return digito_control == valor[12] - '0';
 }
 
+// Validador de ISBN-10 (el dígito de control también puede ser X).
+int isbn10_valido(const char *valor)
+{
+    char limpio[100];
+    int longitud = normalizar(valor, limpio, sizeof(limpio));
+    if (longitud != 10) return 0;
+
+    int suma = 0;
+    for (int i = 0; i < 9; i++)
+    {
+        if (!isdigit((unsigned char) limpio[i])) return 0;
+        suma += (limpio[i] - '0') * (10 - i);
+    }
+
+    int control;
+    if (limpio[9] == 'X')
+        control = 10;
+    else if (isdigit((unsigned char) limpio[9]))
+        control = limpio[9] - '0';
+    else
+        return 0;
+
+    suma += control;
+    return suma % 11 == 0;
+}
+
 // Validador DNI
 int dni_valido(const char *valor){
     int dni, resto;
@@ -95,6 +121,27 @@ int dni_valido(const char *valor){
     else {
         return 0;                            
     }
+}
+
+// Validador NIE: X/Y/Z + 7 dígitos + letra de control.
+int nie_valido(const char *valor)
+{
+    const char letras[] = "TRWAGMYFPDXBNJZSQVHLCKE";
+    if (strlen(valor) != 9) return 0;
+
+    char prefijo = (char) toupper((unsigned char) valor[0]);
+    if (prefijo < 'X' || prefijo > 'Z') return 0;
+
+    int numero = prefijo - 'X';
+    for (int i = 1; i <= 7; i++)
+    {
+        if (!isdigit((unsigned char) valor[i])) return 0;
+        numero = numero * 10 + (valor[i] - '0');
+    }
+
+    char letra = (char) toupper((unsigned char) valor[8]);
+    if (!isalpha((unsigned char) letra)) return 0;
+    return letra == letras[numero % 23];
 }
 
 // Validador de IBAN español mediante el algoritmo módulo 97.
@@ -153,8 +200,11 @@ EMSCRIPTEN_KEEPALIVE
 int validar(const char *tipo, const char *valor)
 {
     if (strcmp(tipo, "ean13") == 0) return ean13_valido(valor);
+    if (strcmp(tipo, "isbn10") == 0) return isbn10_valido(valor);
     if (strcmp(tipo, "isbn13") == 0) return isbn13_valido(valor);
-    if (strcmp(tipo, "dni") == 0) return dni_valido(valor);
+    if (strcmp(tipo, "dni") == 0)
+        return dni_valido(valor) || nie_valido(valor);
+    if (strcmp(tipo, "nie") == 0) return nie_valido(valor);
     if (strcmp(tipo, "iban") == 0) return iban_valido(valor);
     if (strcmp(tipo, "luhn") == 0) return luhn_valido(valor);
     return 0;   
