@@ -15,6 +15,10 @@ const form = $("form"), input = $("value"), result = $("result");
 const explanation = $("explanation");
 const credits = $("credits");
 const controlTools = $("control-tools"), dniMode = $("dni-mode");
+const experimentButton = $("run-experiment");
+const experimentCount = $("experiment-count");
+const experimentStatus = $("experiment-status");
+const experimentResults = $("experiment-results");
 
 credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
@@ -173,6 +177,121 @@ async function runValidator(type, value) {
     return { valid: false, message: "Error al conectar con la función validar() de C. Comprueba su nombre y firma." };
   }
 }
+
+function randomDigits(length) {
+  return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
+}
+
+function makeSyntheticCode(type) {
+  let payload;
+  switch (type) {
+    case "dni":
+      payload = Math.random() < .5
+        ? randomDigits(8)
+        : `${["X", "Y", "Z"][Math.floor(Math.random() * 3)]}${randomDigits(7)}`;
+      break;
+    case "isbn10": payload = randomDigits(9); break;
+    case "isbn13": payload = `978${randomDigits(9)}`; break;
+    case "ean13": payload = randomDigits(12); break;
+    case "iban": payload = `ES${randomDigits(20)}`; break;
+    case "luhn": payload = randomDigits(15); break;
+    default: throw new Error(`Formato de experimento desconocido: ${type}`);
+  }
+
+  const control = cCalculate(type, payload);
+  if (!control) throw new Error(`No se pudo generar un ejemplo para ${type}.`);
+  const code = type === "iban"
+    ? `ES${control}${payload.slice(2)}`
+    : `${payload}${control}`;
+  if (Number(cValidate(type, code)) !== 1)
+    throw new Error(`El validador no aceptó un ejemplo generado para ${type}.`);
+  return code;
+}
+
+function corruptCode(code, type, errorType) {
+  const digits = code.split("");
+  const firstPayloadIndex = type === "iban" ? 4
+    : type === "dni" && /^[XYZ]/.test(code) ? 1
+    : 0;
+  const lastPayloadIndex = type === "dni" ? 7
+    : type === "isbn10" ? 8
+    : type === "isbn13" || type === "ean13" ? 11
+    : type === "iban" ? 23
+    : code.length - 2;
+
+  if (errorType === "substitution") {
+    const index = firstPayloadIndex + Math.floor(Math.random() * (lastPayloadIndex - firstPayloadIndex + 1));
+    const original = Number(digits[index]);
+    let replacement = Math.floor(Math.random() * 9);
+    if (replacement >= original) replacement++;
+    digits[index] = String(replacement);
+  } else {
+    const pairs = [];
+    for (let i = firstPayloadIndex; i < lastPayloadIndex; i++) {
+      if (digits[i] !== digits[i + 1]) pairs.push(i);
+    }
+    if (!pairs.length) return null;
+    const index = pairs[Math.floor(Math.random() * pairs.length)];
+    [digits[index], digits[index + 1]] = [digits[index + 1], digits[index]];
+  }
+
+  return digits.join("");
+}
+
+async function runExperiment() {
+  experimentButton.disabled = true;
+  experimentResults.replaceChildren();
+  experimentStatus.textContent = "Cargando el validador…";
+
+  try {
+    const ready = await Promise.race([
+      wasmReady.then(() => true),
+      wait(10000).then(() => false)
+    ]);
+    if (!ready || !window.Module || typeof window.Module.cwrap !== "function")
+      throw new Error("No se pudo cargar el módulo de validación.");
+
+    if (!cValidate) cValidate = window.Module.cwrap("validar", "number", ["string", "string"]);
+    if (!cCalculate) cCalculate = window.Module.cwrap("calcular_digito", "string", ["string", "string"]);
+
+    const trials = Math.max(10, Math.min(500, Math.floor(Number(experimentCount.value) || 100)));
+    experimentCount.value = trials;
+    experimentStatus.textContent = `Ejecutando ${trials} pruebas de cada tipo de error para cada formato…`;
+
+    for (const option of OPTIONS) {
+      const results = {};
+      for (const errorType of ["substitution", "transposition"]) {
+        let detected = 0, completed = 0;
+        while (completed < trials) {
+          const validCode = makeSyntheticCode(option.id);
+          const corrupted = corruptCode(validCode, option.id, errorType);
+          if (corrupted === null) continue;
+          if (Number(cValidate(option.id, corrupted)) !== 1) detected++;
+          completed++;
+        }
+        results[errorType] = `${detected}/${trials} (${(detected * 100 / trials).toFixed(1)} %)`;
+      }
+
+      const row = document.createElement("tr");
+      [option.label, results.substitution, results.transposition].forEach((text) => {
+        const cell = document.createElement("td");
+        cell.textContent = text;
+        row.append(cell);
+      });
+      experimentResults.append(row);
+    }
+
+    experimentStatus.textContent =
+      `Experimento terminado. Cada porcentaje es errores detectados / ${trials} errores introducidos.`;
+  } catch (error) {
+    console.error("Error en el modo experimento:", error);
+    experimentStatus.textContent = error.message || "No se pudo completar el experimento.";
+  } finally {
+    experimentButton.disabled = false;
+  }
+}
+
+experimentButton.addEventListener("click", runExperiment);
 
 function explainCalculation(type, value, valid, calculating = false, calculatedControl = "") {
   const clean = value.replace(/[\s-]/g, "").toUpperCase();

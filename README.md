@@ -13,7 +13,9 @@ La interfaz ofrece estas opciones:
 - IBAN español
 - Número de tarjeta (algoritmo de Luhn)
 
-Actualmente, la lógica implementada en C valida **DNI** y **EAN-13**. Las demás opciones aparecen en la interfaz, pero todavía no cuentan con validación implementada. Aunque el menú indica DNI/NIE, por ahora solo se valida el DNI.
+La aplicación valida DNI/NIE, ISBN-10, ISBN-13, EAN-13, IBAN español y números de tarjeta con Luhn. También permite calcular sus dígitos de control y explica los pasos del cálculo.
+
+Incluye una sección «¿Cómo funciona?» y un modo experimento que genera códigos sintéticos, altera dígitos o intercambia posiciones contiguas y muestra qué porcentaje de esos errores detecta cada validador. Los porcentajes dependen de los errores simulados y no representan todos los casos posibles.
 
 ## Tecnologías
 
@@ -25,7 +27,7 @@ Actualmente, la lógica implementada en C valida **DNI** y **EAN-13**. Las demá
 
 - `web/index.html`: estructura de la página.
 - `web/style.css`: estilos y diseño adaptable.
-- `web/app.js`: menú, interacción y llamada al módulo WebAssembly.
-- `src/validador.c`: validadores implementados y función de entrada `validar()`.
+- `web/app.js`: menú, interacción, explicaciones y modo experimento.
+- `src/validador.c`: validadores y cálculos de dígitos de control, expuestos a JavaScript mediante WebAssembly.
 
 La página espera que `web/validador.js` y el archivo WebAssembly generado estén disponibles para cargar el módulo.
