@@ -180,7 +180,12 @@ function explainCalculation(type, value, valid, calculating = false) {
         return invalidFormat("8 dígitos para DNI o X/Y/Z seguido de 7 dígitos para NIE");
       }
       const letter = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
-      return `Se divide ${number} entre 23. El resto es ${number % 23}, que corresponde a la letra ${letter}.`;
+      return [
+        "1. Tomamos el número introducido.",
+        `2. Dividimos ${number} entre 23: ${number} = ${Math.floor(number / 23)} × 23 + ${number % 23}.`,
+        `3. El resto es ${number % 23}; en la tabla de control corresponde a la letra ${letter}.`,
+        "Este cálculo obtiene la letra final; en un NIE, la X, Y o Z inicial se introduce porque forma parte del número."
+      ].join("\n");
     }
 
     let number, entered;
@@ -194,7 +199,12 @@ function explainCalculation(type, value, valid, calculating = false) {
       return invalidFormat("8 dígitos y una letra para DNI, o X/Y/Z + 7 dígitos + una letra para NIE");
     }
     const expected = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
-    return `El resto de ${number} dividido entre 23 es ${number % 23}; la letra esperada es ${expected} y la introducida es ${entered}. ${valid ? "Coinciden." : "No coinciden."}`;
+    return [
+      `1. Número usado para el cálculo: ${number}.`,
+      `2. División: ${number} = ${Math.floor(number / 23)} × 23 + ${number % 23}; el resto es ${number % 23}.`,
+      `3. Ese resto corresponde a la letra ${expected}. La letra introducida es ${entered}.`,
+      valid ? "Como coinciden, el DNI/NIE supera la comprobación." : "Como no coinciden, el DNI/NIE no supera la comprobación."
+    ].join("\n");
   }
 
   if (type === "ean13" || type === "isbn13") {
@@ -204,7 +214,14 @@ function explainCalculation(type, value, valid, calculating = false) {
     const sum = [...clean.slice(0, 12)].reduce((total, digit, i) =>
       total + Number(digit) * (i % 2 === 0 ? 1 : 3), 0);
     const expected = (10 - (sum % 10)) % 10;
-    return `Se suman los primeros 12 dígitos alternando pesos 1 y 3: ${sum}. El dígito de control esperado es ${expected}; el introducido es ${clean[12]}. ${valid ? "Coinciden." : "No coinciden."}`;
+    const products = [...clean.slice(0, 12)].map((digit, i) =>
+      `${digit}×${i % 2 === 0 ? 1 : 3}`).join(" + ");
+    return [
+      `1. Multiplicamos los primeros 12 dígitos alternando los pesos 1 y 3: ${products}.`,
+      `2. Sumamos los resultados: ${sum}. Para llegar al siguiente múltiplo de 10, el control debe ser (10 − ${sum % 10}) módulo 10 = ${expected}.`,
+      `3. El control escrito es ${clean[12]}.`,
+      valid ? "Coincide con el calculado; por eso es válido." : "No coincide con el calculado; por eso no es válido."
+    ].join("\n");
   }
 
   if (type === "isbn10") {
@@ -212,7 +229,14 @@ function explainCalculation(type, value, valid, calculating = false) {
     const values = [...clean.slice(0, 9)].map(Number);
     values.push(clean[9] === "X" ? 10 : Number(clean[9]));
     const sum = values.reduce((total, digit, i) => total + digit * (10 - i), 0);
-    return `Se multiplican los dígitos por pesos del 10 al 1 y se suman: ${sum}. El ISBN-10 es válido si el total es divisible entre 11 (resto ${sum % 11}). ${valid ? "El resto es 0." : "El resto no es 0."}`;
+    const products = values.map((digit, i) => `${digit}×${10 - i}`).join(" + ");
+    return [
+      "1. Multiplicamos cada posición por su peso, del 10 al 1. La X final representa 10:",
+      `   ${products}.`,
+      `2. Sumamos: ${sum}. Dividimos entre 11; el resto es ${sum % 11}.`,
+      valid ? "El resto es 0, así que la suma es divisible entre 11 y el ISBN-10 es válido."
+        : "El resto debería ser 0. Al no serlo, el ISBN-10 no es válido."
+    ].join("\n");
   }
 
   if (type === "iban") {
@@ -222,19 +246,33 @@ function explainCalculation(type, value, valid, calculating = false) {
       /[A-Z]/.test(char) ? String(char.charCodeAt(0) - 55) : char).join("");
     let remainder = 0;
     for (const digit of expanded) remainder = (remainder * 10 + Number(digit)) % 97;
-    return `Se reordenan los cuatro primeros caracteres al final y se calcula el módulo 97. El resto es ${remainder}; debe ser 1. ${valid ? "Por eso el IBAN es válido." : "Como el resto no es 1, el IBAN no es válido."}`;
+    return [
+      `1. Movemos los cuatro primeros caracteres al final: ${clean} → ${rearranged}.`,
+      `2. Sustituimos las letras por números (A=10, B=11…; ES se convierte en 1428): ${expanded}.`,
+      "3. Calculamos el resto de dividir ese número entre 97. Se hace cifra a cifra para manejarlo sin números enormes.",
+      `   El resto obtenido es ${remainder}; para que el IBAN sea válido debe ser 1.`,
+      valid ? "El resto es 1, así que el IBAN supera la comprobación." : "El resto no es 1, así que el IBAN no supera la comprobación."
+    ].join("\n");
   }
 
   if (type === "luhn") {
     if (!/^\d{12,19}$/.test(clean)) return invalidFormat("entre 12 y 19 dígitos");
     let sum = 0, double = false;
+    const operations = [];
     for (let i = clean.length - 1; i >= 0; i--) {
-      let digit = Number(clean[i]);
+      const original = Number(clean[i]);
+      let digit = original;
       if (double) { digit *= 2; if (digit > 9) digit -= 9; }
       sum += digit;
+      operations.unshift(double ? `${original}→${digit}` : `${digit}`);
       double = !double;
     }
-    return `Se aplica Luhn: se duplican dígitos alternos desde la derecha y se suman los resultados. La suma es ${sum} (resto ${sum % 10} al dividir entre 10); debe ser múltiplo de 10. ${valid ? "Lo es." : "No lo es."}`;
+    return [
+      "1. Desde la derecha, duplicamos uno sí y otro no (el dígito duplicado mayor que 9 se reduce restándole 9).",
+      `2. Dígitos tras la operación, de izquierda a derecha (a→b indica duplicación): ${operations.join(" + ")}.`,
+      `3. Sumamos: ${sum}. Al dividir entre 10, el resto es ${sum % 10}; debe ser 0.`,
+      valid ? "El resto es 0, así que supera el algoritmo de Luhn." : "El resto no es 0, así que no supera el algoritmo de Luhn."
+    ].join("\n");
   }
 
   return valid ? "El valor ha superado las comprobaciones del validador." : "El formato o el dígito de control no es válido.";
