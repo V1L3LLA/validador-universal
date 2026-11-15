@@ -12,6 +12,7 @@ const OPTIONS = [
 const $ = (id) => document.getElementById(id);
 const app = $("app"), menu = $("menu"), ws = $("workspace");
 const form = $("form"), input = $("value"), result = $("result");
+const explanation = $("explanation");
 const credits = $("credits");
 const dniTools = $("dni-tools"), dniMode = $("dni-mode");
 
@@ -108,6 +109,7 @@ function setCurrent(opt, animate = false) {
   input.placeholder = opt.placeholder;
   input.value = "";
   result.hidden = true;
+  explanation.hidden = true;
 
   ws.hidden = false;
   if (animate) {
@@ -162,6 +164,82 @@ async function runValidator(type, value) {
   }
 }
 
+function explainCalculation(type, value, valid, calculating = false) {
+  const clean = value.replace(/[\s-]/g, "").toUpperCase();
+  const invalidFormat = (expected) =>
+    `No se puede completar el cálculo: el formato debe cumplir ${expected}.`;
+
+  if (type === "dni") {
+    if (calculating) {
+      let number;
+      if (/^\d{8}$/.test(value)) {
+        number = Number(value);
+      } else if (/^[XYZ]\d{7}$/i.test(value)) {
+        number = Number(({ X: "0", Y: "1", Z: "2" })[clean[0]] + clean.slice(1));
+      } else {
+        return invalidFormat("8 dígitos para DNI o X/Y/Z seguido de 7 dígitos para NIE");
+      }
+      const letter = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
+      return `Se divide ${number} entre 23. El resto es ${number % 23}, que corresponde a la letra ${letter}.`;
+    }
+
+    let number, entered;
+    if (/^\d{8}[A-Z]$/i.test(value)) {
+      number = Number(clean.slice(0, 8));
+      entered = clean[8];
+    } else if (/^[XYZ]\d{7}[A-Z]$/i.test(value)) {
+      number = Number(({ X: "0", Y: "1", Z: "2" })[clean[0]] + clean.slice(1, 8));
+      entered = clean[8];
+    } else {
+      return invalidFormat("8 dígitos y una letra para DNI, o X/Y/Z + 7 dígitos + una letra para NIE");
+    }
+    const expected = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
+    return `El resto de ${number} dividido entre 23 es ${number % 23}; la letra esperada es ${expected} y la introducida es ${entered}. ${valid ? "Coinciden." : "No coinciden."}`;
+  }
+
+  if (type === "ean13" || type === "isbn13") {
+    if (!/^\d{13}$/.test(value)) return invalidFormat("13 dígitos, sin espacios ni guiones");
+    if (type === "isbn13" && !/^(978|979)/.test(clean))
+      return invalidFormat("13 dígitos y comenzar por 978 o 979");
+    const sum = [...clean.slice(0, 12)].reduce((total, digit, i) =>
+      total + Number(digit) * (i % 2 === 0 ? 1 : 3), 0);
+    const expected = (10 - (sum % 10)) % 10;
+    return `Se suman los primeros 12 dígitos alternando pesos 1 y 3: ${sum}. El dígito de control esperado es ${expected}; el introducido es ${clean[12]}. ${valid ? "Coinciden." : "No coinciden."}`;
+  }
+
+  if (type === "isbn10") {
+    if (!/^\d{9}[\dX]$/.test(clean)) return invalidFormat("9 dígitos y un dígito final o X");
+    const values = [...clean.slice(0, 9)].map(Number);
+    values.push(clean[9] === "X" ? 10 : Number(clean[9]));
+    const sum = values.reduce((total, digit, i) => total + digit * (10 - i), 0);
+    return `Se multiplican los dígitos por pesos del 10 al 1 y se suman: ${sum}. El ISBN-10 es válido si el total es divisible entre 11 (resto ${sum % 11}). ${valid ? "El resto es 0." : "El resto no es 0."}`;
+  }
+
+  if (type === "iban") {
+    if (!/^ES\d{22}$/.test(clean)) return invalidFormat("ES seguido de 22 dígitos");
+    const rearranged = clean.slice(4) + clean.slice(0, 4);
+    const expanded = [...rearranged].map((char) =>
+      /[A-Z]/.test(char) ? String(char.charCodeAt(0) - 55) : char).join("");
+    let remainder = 0;
+    for (const digit of expanded) remainder = (remainder * 10 + Number(digit)) % 97;
+    return `Se reordenan los cuatro primeros caracteres al final y se calcula el módulo 97. El resto es ${remainder}; debe ser 1. ${valid ? "Por eso el IBAN es válido." : "Como el resto no es 1, el IBAN no es válido."}`;
+  }
+
+  if (type === "luhn") {
+    if (!/^\d{12,19}$/.test(clean)) return invalidFormat("entre 12 y 19 dígitos");
+    let sum = 0, double = false;
+    for (let i = clean.length - 1; i >= 0; i--) {
+      let digit = Number(clean[i]);
+      if (double) { digit *= 2; if (digit > 9) digit -= 9; }
+      sum += digit;
+      double = !double;
+    }
+    return `Se aplica Luhn: se duplican dígitos alternos desde la derecha y se suman los resultados. La suma es ${sum} (resto ${sum % 10} al dividir entre 10); debe ser múltiplo de 10. ${valid ? "Lo es." : "No lo es."}`;
+  }
+
+  return valid ? "El valor ha superado las comprobaciones del validador." : "El formato o el dígito de control no es válido.";
+}
+
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!current) return;
@@ -171,9 +249,14 @@ form.addEventListener("submit", async (e) => {
   result.hidden = false;
   result.className = "result wait";
   result.textContent = "Validando…";
+  explanation.hidden = true;
 
   const res = await runValidator(current.id, value);
   result.className = "result";
   result.classList.add(res.valid ? "ok" : "bad");
   result.textContent = res.message || (res.valid ? "Válido" : "No válido");
+  explanation.textContent = explainCalculation(
+    current.id, value, res.valid, current.id === "dni" && dniMode.value === "calculate"
+  );
+  explanation.hidden = false;
 });

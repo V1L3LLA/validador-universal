@@ -231,6 +231,20 @@ body {
 #form button:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 5px 12px rgba(10, 124, 255, .3); }
 #form button:active { transform: translateY(0); }
 
+.explanation {
+  margin-top: .7rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, .42);
+  border-radius: 14px;
+  background: rgba(29, 36, 51, .32);
+  color: #fff;
+  font-size: .88rem;
+  line-height: 1.5;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, .25);
+  backdrop-filter: blur(5px);
+  animation: wsIn .35s var(--ease);
+}
+
 .result {
   margin-top: 1rem; padding: .9rem 1.2rem; border-radius: 16px;
   background: rgba(255, 255, 255, .96); color: var(--ink); font-weight: 700;
