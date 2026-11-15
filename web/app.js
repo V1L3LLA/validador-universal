@@ -179,11 +179,13 @@ function explainCalculation(type, value, valid, calculating = false) {
       } else {
         return invalidFormat("8 dígitos para DNI o X/Y/Z seguido de 7 dígitos para NIE");
       }
-      const letter = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
+      const letterTable = "TRWAGMYFPDXBNJZSQVHLCKE";
+      const remainder = number % 23;
+      const letter = letterTable[remainder];
       return [
-        "1. Tomamos el número introducido.",
-        `2. Dividimos ${number} entre 23: ${number} = ${Math.floor(number / 23)} × 23 + ${number % 23}.`,
-        `3. El resto es ${number % 23}; en la tabla de control corresponde a la letra ${letter}.`,
+        `1. Tomamos el número ${clean}. En un NIE, la inicial se convierte: X=0, Y=1, Z=2.`,
+        `2. Dividimos ${number} entre 23: ${number} = ${Math.floor(number / 23)} × 23 + ${remainder}.`,
+        `3. Usamos el resto (${remainder}) como posición, empezando en 0, en la secuencia ${letterTable}. La letra calculada es ${letter}.`,
         "Este cálculo obtiene la letra final; en un NIE, la X, Y o Z inicial se introduce porque forma parte del número."
       ].join("\n");
     }
@@ -198,11 +200,13 @@ function explainCalculation(type, value, valid, calculating = false) {
     } else {
       return invalidFormat("8 dígitos y una letra para DNI, o X/Y/Z + 7 dígitos + una letra para NIE");
     }
-    const expected = "TRWAGMYFPDXBNJZSQVHLCKE"[number % 23];
+    const letterTable = "TRWAGMYFPDXBNJZSQVHLCKE";
+    const remainder = number % 23;
+    const expected = letterTable[remainder];
     return [
-      `1. Número usado para el cálculo: ${number}.`,
-      `2. División: ${number} = ${Math.floor(number / 23)} × 23 + ${number % 23}; el resto es ${number % 23}.`,
-      `3. Ese resto corresponde a la letra ${expected}. La letra introducida es ${entered}.`,
+      `1. Número usado: ${number}${/^[XYZ]/.test(clean) ? ` (la inicial del NIE ${clean[0]} se convierte en ${clean[0] === "X" ? 0 : clean[0] === "Y" ? 1 : 2})` : ""}.`,
+      `2. Dividimos entre 23: ${number} = ${Math.floor(number / 23)} × 23 + ${remainder}; el resto es ${remainder}.`,
+      `3. El resto indica la posición (empezando en 0) en la secuencia ${letterTable}; corresponde a ${expected}. La letra introducida es ${entered}.`,
       valid ? "Como coinciden, el DNI/NIE supera la comprobación." : "Como no coinciden, el DNI/NIE no supera la comprobación."
     ].join("\n");
   }
