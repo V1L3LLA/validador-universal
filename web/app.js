@@ -14,7 +14,7 @@ const app = $("app"), menu = $("menu"), ws = $("workspace");
 const form = $("form"), input = $("value"), result = $("result");
 const explanation = $("explanation");
 const credits = $("credits");
-const dniTools = $("dni-tools"), dniMode = $("dni-mode");
+const controlTools = $("control-tools"), dniMode = $("dni-mode");
 
 credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
@@ -101,12 +101,13 @@ function setCurrent(opt, animate = false) {
 
   $("ws-title").textContent = opt.label;
   $("ws-hint").textContent = opt.hint;
-  dniTools.hidden = opt.id !== "dni";
   dniMode.value = "validate";
+  controlTools.hidden = false;
   const icon = $("ws-icon");
   icon.style.background = opt.color;
   icon.textContent = opt.tag;
   input.placeholder = opt.placeholder;
+  $("form").querySelector("button[type=submit]").textContent = "Validar";
   input.value = "";
   result.hidden = true;
   explanation.hidden = true;
@@ -122,10 +123,17 @@ function setCurrent(opt, animate = false) {
 
 dniMode.addEventListener("change", () => {
   const calculating = dniMode.value === "calculate";
-  input.placeholder = calculating ? "8 dígitos o X/Y/Z + 7 dígitos" : current.placeholder;
-  $("ws-hint").textContent = calculating
-    ? "Introduce solo los números del DNI o NIE, sin la letra."
-    : current.hint;
+  const calculateOptions = {
+    dni: ["8 dígitos o X/Y/Z + 7 dígitos", "Introduce el número sin la letra final. Para NIE, incluye X, Y o Z."],
+    isbn10: ["9 dígitos", "Introduce los primeros 9 dígitos del ISBN-10."],
+    isbn13: ["12 dígitos (978 o 979…)", "Introduce los primeros 12 dígitos del ISBN-13."],
+    ean13: ["12 dígitos", "Introduce los primeros 12 dígitos del EAN-13."],
+    iban: ["ES + 20 dígitos", "Introduce ES seguido de los 20 dígitos de la cuenta, sin los dos dígitos de control."],
+    luhn: ["11–18 dígitos", "Introduce el número de tarjeta sin su último dígito."]
+  };
+  input.placeholder = calculating ? calculateOptions[current.id][0] : current.placeholder;
+  $("ws-hint").textContent = calculating ? calculateOptions[current.id][1] : current.hint;
+  $("form").querySelector("button[type=submit]").textContent = calculating ? "Calcular" : "Validar";
 });
 
 /*
@@ -147,12 +155,14 @@ async function runValidator(type, value) {
   }
 
   try {
-    if (type === "dni" && dniMode.value === "calculate") {
-      if (!cCalculate) cCalculate = window.Module.cwrap("calcular_control", "string", ["string"]);
-      const letter = cCalculate(value);
-      return letter
-        ? { valid: true, message: `La letra de control es: ${letter}` }
-        : { valid: false, message: "Introduce 8 dígitos (DNI) o el prefijo X/Y/Z y 7 dígitos (NIE)." };
+    if (dniMode.value === "calculate") {
+      if (!cCalculate) cCalculate = window.Module.cwrap("calcular_digito", "string", ["string", "string"]);
+      const control = cCalculate(type, value);
+      if (!control) return { valid: false, message: "El valor no tiene el formato necesario para calcular su control." };
+      const message = type === "iban"
+        ? `Dígitos de control: ${control}. IBAN resultante: ${value.replace(/[\s-]/g, "").slice(0, 2)}${control}${value.replace(/[\s-]/g, "").slice(2)}`
+        : `Dígito de control calculado: ${control}.`;
+      return { valid: true, message, control };
     }
 
     if (!cValidate) cValidate = window.Module.cwrap("validar", "number", ["string", "string"]);
@@ -164,7 +174,7 @@ async function runValidator(type, value) {
   }
 }
 
-function explainCalculation(type, value, valid, calculating = false) {
+function explainCalculation(type, value, valid, calculating = false, calculatedControl = "") {
   const clean = value.replace(/[\s-]/g, "").toUpperCase();
   const invalidFormat = (expected) =>
     `No se puede completar el cálculo: el formato debe cumplir ${expected}.`;
@@ -172,9 +182,9 @@ function explainCalculation(type, value, valid, calculating = false) {
   if (type === "dni") {
     if (calculating) {
       let number;
-      if (/^\d{8}$/.test(value)) {
-        number = Number(value);
-      } else if (/^[XYZ]\d{7}$/i.test(value)) {
+      if (/^\d{8}$/.test(clean)) {
+        number = Number(clean);
+      } else if (/^[XYZ]\d{7}$/.test(clean)) {
         number = Number(({ X: "0", Y: "1", Z: "2" })[clean[0]] + clean.slice(1));
       } else {
         return invalidFormat("8 dígitos para DNI o X/Y/Z seguido de 7 dígitos para NIE");
@@ -209,6 +219,65 @@ function explainCalculation(type, value, valid, calculating = false) {
       `3. El resto indica la posición (empezando en 0) en la secuencia ${letterTable}; corresponde a ${expected}. La letra introducida es ${entered}.`,
       valid ? "Como coinciden, el DNI/NIE supera la comprobación." : "Como no coinciden, el DNI/NIE no supera la comprobación."
     ].join("\n");
+  }
+
+  if (calculating) {
+    if (type === "ean13" || type === "isbn13") {
+      if (!/^\d{12}$/.test(clean)) return invalidFormat("12 dígitos, sin espacios ni guiones");
+      if (type === "isbn13" && !/^(978|979)/.test(clean))
+        return invalidFormat("12 dígitos y comenzar por 978 o 979");
+      const products = [...clean].map((digit, i) => `${digit}×${i % 2 === 0 ? 1 : 3}`);
+      const sum = [...clean].reduce((total, digit, i) =>
+        total + Number(digit) * (i % 2 === 0 ? 1 : 3), 0);
+      return [
+        `1. Multiplicamos los 12 dígitos alternando pesos 1 y 3: ${products.join(" + ")}.`,
+        `2. Sumamos: ${sum}. El dígito de control es (10 − resto de ${sum} entre 10) módulo 10 = ${calculatedControl}.`,
+        `3. Al añadirlo, el código queda ${clean}${calculatedControl}.`
+      ].join("\n");
+    }
+
+    if (type === "isbn10") {
+      if (!/^\d{9}$/.test(clean)) return invalidFormat("9 dígitos");
+      const products = [...clean].map((digit, i) => `${digit}×${10 - i}`);
+      const sum = [...clean].reduce((total, digit, i) =>
+        total + Number(digit) * (10 - i), 0);
+      return [
+        `1. Multiplicamos los 9 dígitos por los pesos del 10 al 2: ${products.join(" + ")}.`,
+        `2. La suma es ${sum}. Se elige el control para que la suma más el control sea divisible entre 11.`,
+        `3. El control calculado es ${calculatedControl}${calculatedControl === "X" ? " (X representa 10)" : ""}; el ISBN-10 completo sería ${clean}${calculatedControl}.`
+      ].join("\n");
+    }
+
+    if (type === "iban") {
+      if (!/^ES\d{20}$/.test(clean)) return invalidFormat("ES seguido de los 20 dígitos de cuenta, sin los dos dígitos de control");
+      const expanded = clean.slice(2) + "142800";
+      let remainder = 0;
+      for (const digit of expanded) remainder = (remainder * 10 + Number(digit)) % 97;
+      return [
+        `1. Para obtener los controles, usamos los 20 dígitos de cuenta y añadimos ES00 al final. ES se convierte en 1428: ${expanded}.`,
+        `2. El resto de dividir ese número entre 97 es ${remainder}.`,
+        `3. Restamos el resto a 98: 98 − ${remainder} = ${calculatedControl}. Esos son los dos controles; el IBAN resultante es ES${calculatedControl}${clean.slice(2)}.`
+      ].join("\n");
+    }
+
+    if (type === "luhn") {
+      if (!/^\d{11,18}$/.test(clean)) return invalidFormat("entre 11 y 18 dígitos, sin el dígito de control");
+      let sum = 0, double = true;
+      const operations = [];
+      for (let i = clean.length - 1; i >= 0; i--) {
+        const original = Number(clean[i]);
+        let digit = original;
+        if (double) { digit *= 2; if (digit > 9) digit -= 9; }
+        sum += digit;
+        operations.unshift(double ? `${original}→${digit}` : `${digit}`);
+        double = !double;
+      }
+      return [
+        "1. Como falta el dígito final, empezamos duplicando desde el último dígito introducido; si el resultado supera 9, restamos 9.",
+        `2. Resultados (a→b indica duplicación): ${operations.join(" + ")}. La suma es ${sum}.`,
+        `3. El control que completa un múltiplo de 10 es (10 − resto de ${sum} entre 10) módulo 10 = ${calculatedControl}.`
+      ].join("\n");
+    }
   }
 
   if (type === "ean13" || type === "isbn13") {
@@ -297,8 +366,10 @@ form.addEventListener("submit", async (e) => {
   result.className = "result";
   result.classList.add(res.valid ? "ok" : "bad");
   result.textContent = res.message || (res.valid ? "Válido" : "No válido");
-  explanation.textContent = explainCalculation(
-    current.id, value, res.valid, current.id === "dni" && dniMode.value === "calculate"
-  );
+  const calculationMode = dniMode.value === "calculate";
+  const details = explainCalculation(current.id, value, res.valid, calculationMode, res.control || "");
+  explanation.textContent = calculationMode && res.valid
+    ? `${details}\n\nNota: un control correcto no demuestra que el documento, código, tarjeta o cuenta haya sido asignado.`
+    : details;
   explanation.hidden = false;
 });

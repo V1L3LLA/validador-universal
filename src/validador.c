@@ -182,6 +182,97 @@ const char *calcular_control(const char *valor)
     return resultado;
 }
 
+// Calcula el dígito de control del formato indicado usando el valor sin control.
+EMSCRIPTEN_KEEPALIVE
+const char *calcular_digito(const char *tipo, const char *valor)
+{
+    static char resultado[3];
+    char limpio[100];
+    int longitud = normalizar(valor, limpio, sizeof(limpio));
+    resultado[0] = '\0';
+    if (longitud < 0) return "";
+
+    if (strcmp(tipo, "dni") == 0)
+        return calcular_control(limpio);
+
+    if (strcmp(tipo, "ean13") == 0 || strcmp(tipo, "isbn13") == 0)
+    {
+        if (longitud != 12) return "";
+        if (strcmp(tipo, "isbn13") == 0 &&
+            strncmp(limpio, "978", 3) != 0 && strncmp(limpio, "979", 3) != 0)
+            return "";
+
+        int suma = 0;
+        for (int i = 0; i < 12; i++)
+        {
+            if (!isdigit((unsigned char) limpio[i])) return "";
+            suma += (limpio[i] - '0') * (i % 2 == 0 ? 1 : 3);
+        }
+        resultado[0] = (char) ('0' + (10 - suma % 10) % 10);
+        resultado[1] = '\0';
+        return resultado;
+    }
+
+    if (strcmp(tipo, "isbn10") == 0)
+    {
+        if (longitud != 9) return "";
+        int suma = 0;
+        for (int i = 0; i < 9; i++)
+        {
+            if (!isdigit((unsigned char) limpio[i])) return "";
+            suma += (limpio[i] - '0') * (10 - i);
+        }
+        int control = (11 - suma % 11) % 11;
+        resultado[0] = control == 10 ? 'X' : (char) ('0' + control);
+        resultado[1] = '\0';
+        return resultado;
+    }
+
+    if (strcmp(tipo, "iban") == 0)
+    {
+        if (longitud != 22 || limpio[0] != 'E' || limpio[1] != 'S') return "";
+        for (int i = 2; i < 22; i++)
+            if (!isdigit((unsigned char) limpio[i])) return "";
+
+        // BBAN + ES00, con ES convertido a 1428.
+        int resto = 0;
+        for (int i = 2; i < 22; i++)
+            resto = (resto * 10 + limpio[i] - '0') % 97;
+        const char *sufijo = "142800";
+        for (int i = 0; sufijo[i] != '\0'; i++)
+            resto = (resto * 10 + sufijo[i] - '0') % 97;
+        int control = 98 - resto;
+        resultado[0] = (char) ('0' + control / 10);
+        resultado[1] = (char) ('0' + control % 10);
+        resultado[2] = '\0';
+        return resultado;
+    }
+
+    if (strcmp(tipo, "luhn") == 0)
+    {
+        if (longitud < 11 || longitud > 18) return "";
+        int suma = 0;
+        int duplicar = 1;
+        for (int i = longitud - 1; i >= 0; i--)
+        {
+            if (!isdigit((unsigned char) limpio[i])) return "";
+            int digito = limpio[i] - '0';
+            if (duplicar)
+            {
+                digito *= 2;
+                if (digito > 9) digito -= 9;
+            }
+            suma += digito;
+            duplicar = !duplicar;
+        }
+        resultado[0] = (char) ('0' + (10 - suma % 10) % 10);
+        resultado[1] = '\0';
+        return resultado;
+    }
+
+    return "";
+}
+
 // Validador de IBAN español mediante el algoritmo módulo 97.
 int iban_valido(const char *valor)
 {
