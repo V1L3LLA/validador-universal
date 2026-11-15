@@ -21,16 +21,32 @@ body {
 .bg {
   position: fixed; inset: 0; z-index: -1;
   background:
-    radial-gradient(ellipse at 50% 62%, rgba(243, 169, 138, .95) 0, rgba(243, 169, 138, 0) 34%),
-    linear-gradient(180deg, #7fb0c4 0%, #bcd3d8 38%, #e8c4b0 58%, #3f7a80 59%, #2b5a63 100%);
+    radial-gradient(ellipse at 14% 18%, rgba(10, 124, 255, .28), transparent 38%),
+    radial-gradient(ellipse at 84% 24%, rgba(34, 181, 115, .2), transparent 34%),
+    radial-gradient(ellipse at 52% 74%, rgba(243, 169, 138, .62), transparent 38%),
+    linear-gradient(145deg, #284e68 0%, #477c8a 42%, #d39582 72%, #254d55 100%);
+  overflow: hidden;
 }
 .bg::before, .bg::after {
-  content: ""; position: absolute; bottom: 38%; width: 46%; height: 34%;
-  background: #5f8fa3; opacity: .75;
-  clip-path: polygon(0 100%, 12% 30%, 30% 14%, 48% 40%, 70% 100%);
+  content: "";
+  position: absolute;
+  width: min(52vw, 680px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  filter: blur(75px);
+  opacity: .42;
+  pointer-events: none;
 }
-.bg::before { left: 0; }
-.bg::after  { right: 0; transform: scaleX(-1); background: #6f9aab; }
+.bg::before {
+  left: -18vw;
+  top: 32%;
+  background: radial-gradient(circle, rgba(57, 151, 181, .9), transparent 68%);
+}
+.bg::after {
+  right: -16vw;
+  top: -24%;
+  background: radial-gradient(circle, rgba(236, 163, 137, .8), transparent 68%);
+}
 
 #app {
   position: relative;
