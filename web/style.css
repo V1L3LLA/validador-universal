@@ -367,6 +367,36 @@ body {
   overflow-wrap: anywhere;
   animation: wsIn .35s var(--ease);
 }
+.correct-control {
+  width: 100%;
+  margin-top: .7rem;
+  padding: .75rem 1rem;
+  border: 1px solid rgba(71, 120, 245, .35);
+  border-radius: 13px;
+  background: #edf2ff;
+  color: #294ca3;
+  font: inherit;
+  font-size: .88rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: background .2s, border-color .2s, transform .2s var(--ease);
+}
+.correct-control:hover { background: #e3ebff; border-color: rgba(71, 120, 245, .6); }
+.correct-control:active { transform: translateY(1px); }
+.correction-result {
+  margin-top: .65rem;
+  padding: .9rem 1rem;
+  border: 1px solid #bfe4d5;
+  border-left: 4px solid #19a878;
+  border-radius: 13px;
+  background: #f0faf6;
+  color: #285744;
+  font-size: .84rem;
+  line-height: 1.6;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
 .info-panel {
   margin-top: .8rem;
   overflow: hidden;

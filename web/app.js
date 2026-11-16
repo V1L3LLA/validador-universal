@@ -13,6 +13,8 @@ const $ = (id) => document.getElementById(id);
 const app = $("app"), menu = $("menu"), ws = $("workspace");
 const form = $("form"), input = $("value"), result = $("result");
 const explanation = $("explanation");
+const correctControlButton = $("correct-control");
+const correctionResult = $("correction-result");
 const credits = $("credits");
 const controlTools = $("control-tools"), dniMode = $("dni-mode");
 const validatorView = $("validator-view"), experimentView = $("experiment-view");
@@ -36,6 +38,7 @@ const HOW_INFO = {
 credits.addEventListener("animationend", () => credits.remove(), { once: true });
 
 let current = null;
+let lastInvalidValue = null;
 let busy = false;
 let wasmReadyResolve;
 const wasmReady = new Promise((resolve) => { wasmReadyResolve = resolve; });
@@ -163,6 +166,9 @@ async function select(id) {
 
 function setCurrent(opt, animate = false) {
   current = opt;
+  lastInvalidValue = null;
+  correctControlButton.hidden = true;
+  correctionResult.hidden = true;
   buttons.forEach((b) => b.classList.toggle("current", b.dataset.id === opt.id));
   experimentMenuButton.classList.remove("current");
   validatorView.hidden = false;
@@ -194,6 +200,9 @@ function setCurrent(opt, animate = false) {
 
 function setExperimentMode(animate = false) {
   current = null;
+  lastInvalidValue = null;
+  correctControlButton.hidden = true;
+  correctionResult.hidden = true;
   buttons.forEach((b) => b.classList.remove("current"));
   experimentMenuButton.classList.add("current");
   validatorView.hidden = true;
@@ -213,6 +222,9 @@ function setExperimentMode(animate = false) {
 }
 
 dniMode.addEventListener("change", () => {
+  lastInvalidValue = null;
+  correctControlButton.hidden = true;
+  correctionResult.hidden = true;
   const calculating = dniMode.value === "calculate";
   const calculateOptions = {
     dni: ["8 dígitos o X/Y/Z + 7 dígitos", "Introduce el número sin la letra final. Para NIE, incluye X, Y o Z."],
@@ -264,6 +276,81 @@ async function runValidator(type, value) {
     return { valid: false, message: "Error al conectar con la función validar() de C. Comprueba su nombre y firma." };
   }
 }
+
+function hasCorrectableControlFormat(type, value) {
+  const clean = value.replace(/[\s-]/g, "").toUpperCase();
+  switch (type) {
+    case "dni": return /^\d{8}[A-Z]$/i.test(value) || /^[XYZ]\d{7}[A-Z]$/i.test(value);
+    case "isbn10": return /^\d{9}[\dX]$/.test(clean);
+    case "isbn13": return /^(978|979)\d{10}$/.test(value);
+    case "ean13": return /^\d{13}$/.test(value);
+    case "iban": return /^ES\d{22}$/.test(clean);
+    case "luhn": return /^\d{12,19}$/.test(clean);
+    default: return false;
+  }
+}
+
+async function correctControlDigit() {
+  if (!lastInvalidValue) return;
+  correctionResult.hidden = false;
+  correctionResult.textContent = "Recalculando el dígito de control…";
+
+  try {
+    if (!cCalculate)
+      cCalculate = window.Module.cwrap("calcular_digito", "string", ["string", "string"]);
+
+    const { type, value } = lastInvalidValue;
+    const clean = value.replace(/[\s-]/g, "").toUpperCase();
+    let payload, corrected, controlName;
+
+    if (type === "dni") {
+      payload = clean.slice(0, -1);
+      controlName = "la letra de control";
+    } else if (type === "isbn10") {
+      payload = clean.slice(0, 9);
+      controlName = "el carácter de control";
+    } else if (type === "isbn13" || type === "ean13") {
+      payload = clean.slice(0, 12);
+      controlName = "el dígito de control";
+    } else if (type === "iban") {
+      payload = `ES${clean.slice(4)}`;
+      controlName = "los dos dígitos de control";
+    } else {
+      payload = clean.slice(0, -1);
+      controlName = "el dígito de control Luhn";
+    }
+
+    const control = cCalculate(type, payload);
+    if (!control) throw new Error("No se pudo calcular el control para este formato.");
+    corrected = type === "iban"
+      ? `ES${control}${clean.slice(4)}`
+      : `${payload}${control}`;
+    if (!cValidate || Number(cValidate(type, corrected)) !== 1)
+      throw new Error("El control recalculado no ha superado la validación.");
+
+    input.value = corrected;
+    result.className = "result ok";
+    result.textContent = "Control recalculado; el valor resultante supera la comprobación matemática.";
+    explanation.textContent += `\n\nSe ha sustituido únicamente el control por ${control}. El resto de los datos no se ha modificado.`;
+    correctionResult.textContent = [
+      `Valor con ${controlName} recalculado: ${corrected}.`,
+      `Se ha sustituido únicamente ${controlName}; el resto del valor se ha mantenido tal como se introdujo.`,
+      "Se asume que los demás dígitos son correctos. Si el error está en el número base, recalcular el control no lo corrige.",
+      "El resultado solo supera la comprobación matemática; no confirma que el documento, ISBN, cuenta o tarjeta exista."
+    ].join("\n");
+    correctControlButton.hidden = true;
+    lastInvalidValue = null;
+  } catch (error) {
+    correctionResult.textContent = error.message || "No se pudo recalcular el control.";
+  }
+}
+
+correctControlButton.addEventListener("click", correctControlDigit);
+input.addEventListener("input", () => {
+  lastInvalidValue = null;
+  correctControlButton.hidden = true;
+  correctionResult.hidden = true;
+});
 
 function randomDigits(length) {
   return Array.from({ length }, () => Math.floor(Math.random() * 10)).join("");
@@ -568,6 +655,9 @@ form.addEventListener("submit", async (e) => {
   result.className = "result wait";
   result.textContent = "Validando…";
   explanation.hidden = true;
+  correctControlButton.hidden = true;
+  correctionResult.hidden = true;
+  lastInvalidValue = null;
 
   const res = await runValidator(current.id, value);
   result.className = "result";
@@ -579,4 +669,9 @@ form.addEventListener("submit", async (e) => {
     ? `${details}\n\nNota: un control correcto no demuestra que el documento, código, tarjeta o cuenta haya sido asignado.`
     : details;
   explanation.hidden = false;
+  if (!calculationMode && !res.valid && res.message === "No válido" &&
+      hasCorrectableControlFormat(current.id, value)) {
+    lastInvalidValue = { type: current.id, value };
+    correctControlButton.hidden = false;
+  }
 });
