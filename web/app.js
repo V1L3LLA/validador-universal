@@ -290,6 +290,18 @@ function hasCorrectableControlFormat(type, value) {
   }
 }
 
+function correctionLimit(type) {
+  const limits = {
+    dni: "Límite DNI/NIE: el algoritmo no permite recuperar ni corregir los dígitos del número ni el prefijo X/Y/Z. Solo recalcula la letra final, suponiendo que el resto está bien.",
+    isbn10: "Límite ISBN-10: el algoritmo no permite recuperar ni corregir con certeza los primeros 9 caracteres. Solo recalcula el carácter de control final.",
+    isbn13: "Límite ISBN-13: el algoritmo no permite recuperar ni corregir con certeza los primeros 12 dígitos. Solo recalcula el último dígito.",
+    ean13: "Límite EAN-13: el algoritmo no permite recuperar ni corregir con certeza los primeros 12 dígitos. Solo recalcula el último dígito.",
+    iban: "Límite IBAN: el módulo 97 no permite recuperar ni corregir con certeza el país ni los 20 dígitos de la cuenta. Solo recalcula los dos dígitos de control.",
+    luhn: "Límite Luhn: el algoritmo no permite recuperar ni corregir con certeza los dígitos del número de tarjeta. Solo recalcula el último dígito de control."
+  };
+  return limits[type];
+}
+
 async function correctControlDigit() {
   if (!lastInvalidValue) return;
   correctionResult.hidden = false;
@@ -334,14 +346,18 @@ async function correctControlDigit() {
     result.textContent = "Control recalculado; el valor resultante supera la comprobación matemática.";
     explanation.textContent +=
       `\n\nValor introducido inicialmente: ${originalValue}.\nValor que muestra ahora el campo: ${corrected}.\nSe ha sustituido únicamente el control por ${control}; el resto de los datos no se ha modificado.`;
-    correctionResult.textContent = [
-      `Valor introducido inicialmente: ${originalValue}.`,
-      `Valor corregido que muestra ahora el campo: ${corrected}.`,
-      `Se ha recalculado ${controlName}.`,
-      `Se ha sustituido únicamente ${controlName}; el resto del valor se ha mantenido tal como se introdujo.`,
-      "Se asume que los demás dígitos son correctos. Si el error está en el número base, recalcular el control no lo corrige.",
-      "El resultado solo supera la comprobación matemática; no confirma que el documento, ISBN, cuenta o tarjeta exista."
-    ].join("\n");
+    const original = document.createElement("p");
+    original.textContent = `Valor introducido inicialmente: ${originalValue}.`;
+    const updated = document.createElement("p");
+    updated.textContent = `Valor corregido que muestra ahora el campo: ${corrected}.`;
+    const recalculated = document.createElement("p");
+    recalculated.textContent = `Se ha recalculado ${controlName}; los demás datos se han mantenido sin cambios.`;
+    const limitation = document.createElement("strong");
+    limitation.className = "correction-warning";
+    limitation.textContent = correctionLimit(type);
+    const disclaimer = document.createElement("p");
+    disclaimer.textContent = "El resultado solo supera la comprobación matemática; no confirma que el documento, ISBN, cuenta o tarjeta exista.";
+    correctionResult.replaceChildren(original, updated, recalculated, limitation, disclaimer);
     correctControlButton.hidden = true;
     lastInvalidValue = null;
   } catch (error) {

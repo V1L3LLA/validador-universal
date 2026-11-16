@@ -413,6 +413,18 @@ body {
   white-space: pre-line;
   overflow-wrap: anywhere;
 }
+.correction-result p + p { margin-top: .45rem; }
+.correction-warning {
+  display: block;
+  margin-top: .7rem;
+  padding: .7rem .8rem;
+  border: 1px solid #f0c977;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #704b09;
+  font-weight: 850;
+  line-height: 1.5;
+}
 .info-panel {
   margin-top: .8rem;
   overflow: hidden;
