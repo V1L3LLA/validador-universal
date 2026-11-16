@@ -291,9 +291,21 @@ int iban_valido(const char *valor)
 
     for (int i = 0; i < 4; i++)
     {
-        int valor_letra = limpio[i] - 'A' + 10;
-        resto = (resto * 10 + valor_letra / 10) % 97;
-        resto = (resto * 10 + valor_letra % 10) % 97;
+        unsigned char caracter = (unsigned char) limpio[i];
+        if (isalpha(caracter))
+        {
+            int valor_letra = toupper(caracter) - 'A' + 10;
+            resto = (resto * 10 + valor_letra / 10) % 97;
+            resto = (resto * 10 + valor_letra % 10) % 97;
+        }
+        else if (isdigit(caracter))
+        {
+            resto = (resto * 10 + (caracter - '0')) % 97;
+        }
+        else
+        {
+            return 0;
+        }
     }
 
     return resto == 1;

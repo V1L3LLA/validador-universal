@@ -465,13 +465,11 @@ async function runExperiment() {
     experimentStatus.textContent = `Probando ${option.label} con ${errorLabel}…`;
 
     let detected = 0, completed = 0;
-    let example = null;
     while (completed < trials) {
       const validCode = makeSyntheticCode(type);
       const corrupted = corruptCode(validCode, type, errorType);
       if (corrupted === null) continue;
       const stillValid = Number(cValidate(type, corrupted)) === 1;
-      if (!example) example = { validCode, corrupted, detected: !stillValid };
       if (!stillValid) detected++;
       completed++;
     }
@@ -483,14 +481,7 @@ async function runExperiment() {
       `Error introducido: ${errorLabel}.`,
       `Pruebas realizadas: ${trials}.`,
       `Errores detectados: ${detected} de ${trials} (${percentage} %).`,
-      `Errores no detectados: ${missed} de ${trials}.`,
-      "",
-      `Ejemplo de esta ejecución:`,
-      `Código sintético válido: ${example.validCode}.`,
-      `Después del error: ${example.corrupted}.`,
-      example.detected
-        ? "Resultado: el validador lo rechazó y detectó el error."
-        : "Resultado: el validador lo aceptó; este error no fue detectado."
+      `Errores no detectados: ${missed} de ${trials}.`
     ].join("\n");
     experimentResult.hidden = false;
     const explanations = {
