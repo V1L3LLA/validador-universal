@@ -300,6 +300,7 @@ async function correctControlDigit() {
       cCalculate = window.Module.cwrap("calcular_digito", "string", ["string", "string"]);
 
     const { type, value } = lastInvalidValue;
+    const originalValue = value;
     const clean = value.replace(/[\s-]/g, "").toUpperCase();
     let payload, corrected, controlName;
 
@@ -331,9 +332,12 @@ async function correctControlDigit() {
     input.value = corrected;
     result.className = "result ok";
     result.textContent = "Control recalculado; el valor resultante supera la comprobación matemática.";
-    explanation.textContent += `\n\nSe ha sustituido únicamente el control por ${control}. El resto de los datos no se ha modificado.`;
+    explanation.textContent +=
+      `\n\nValor introducido inicialmente: ${originalValue}.\nValor que muestra ahora el campo: ${corrected}.\nSe ha sustituido únicamente el control por ${control}; el resto de los datos no se ha modificado.`;
     correctionResult.textContent = [
-      `Valor con ${controlName} recalculado: ${corrected}.`,
+      `Valor introducido inicialmente: ${originalValue}.`,
+      `Valor corregido que muestra ahora el campo: ${corrected}.`,
+      `Se ha recalculado ${controlName}.`,
       `Se ha sustituido únicamente ${controlName}; el resto del valor se ha mantenido tal como se introdujo.`,
       "Se asume que los demás dígitos son correctos. Si el error está en el número base, recalcular el control no lo corrige.",
       "El resultado solo supera la comprobación matemática; no confirma que el documento, ISBN, cuenta o tarjeta exista."
