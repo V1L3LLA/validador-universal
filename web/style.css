@@ -524,6 +524,16 @@ body {
   line-height: 1.65;
   white-space: pre-line;
 }
+.experiment-explanation {
+  margin-top: .65rem;
+  padding: .8rem .95rem;
+  border: 1px solid #dce5f2;
+  border-radius: 12px;
+  background: #f3f6fb;
+  color: #45556d;
+  font-size: .82rem;
+  line-height: 1.55;
+}
 
 /* Adaptación móvil */
 @media (max-width: 720px) {

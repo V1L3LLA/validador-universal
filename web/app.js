@@ -24,6 +24,7 @@ const experimentButton = $("run-experiment");
 const experimentCount = $("experiment-count");
 const experimentStatus = $("experiment-status");
 const experimentResult = $("experiment-result");
+const experimentExplanation = $("experiment-explanation");
 const howContent = $("how-content");
 
 const HOW_INFO = {
@@ -99,6 +100,7 @@ function selectExperimentFormat() {
   const option = OPTIONS.find((item) => item.id === experimentFormat.value);
   if (!option) return;
   experimentResult.hidden = true;
+  experimentExplanation.hidden = true;
   experimentStatus.textContent = "";
   $("ws-title").textContent = `Experimento · ${option.label}`;
   $("ws-icon").style.background = option.color;
@@ -109,10 +111,12 @@ function selectExperimentFormat() {
 experimentFormat.addEventListener("change", selectExperimentFormat);
 experimentError.addEventListener("change", () => {
   experimentResult.hidden = true;
+  experimentExplanation.hidden = true;
   experimentStatus.textContent = "";
 });
 experimentCount.addEventListener("input", () => {
   experimentResult.hidden = true;
+  experimentExplanation.hidden = true;
   experimentStatus.textContent = "";
 });
 
@@ -210,6 +214,7 @@ function setExperimentMode(animate = false) {
   $("ws-hint").hidden = true;
   dniMode.value = "validate";
   experimentResult.hidden = true;
+  experimentExplanation.hidden = true;
   experimentStatus.textContent = "";
   experimentFormat.value = "dni";
   selectExperimentFormat();
@@ -435,6 +440,7 @@ function corruptCode(code, type, errorType) {
 async function runExperiment() {
   experimentButton.disabled = true;
   experimentResult.hidden = true;
+  experimentExplanation.hidden = true;
   experimentStatus.textContent = "Cargando el validador…";
 
   try {
@@ -459,11 +465,14 @@ async function runExperiment() {
     experimentStatus.textContent = `Probando ${option.label} con ${errorLabel}…`;
 
     let detected = 0, completed = 0;
+    let example = null;
     while (completed < trials) {
       const validCode = makeSyntheticCode(type);
       const corrupted = corruptCode(validCode, type, errorType);
       if (corrupted === null) continue;
-      if (Number(cValidate(type, corrupted)) !== 1) detected++;
+      const stillValid = Number(cValidate(type, corrupted)) === 1;
+      if (!example) example = { validCode, corrupted, detected: !stillValid };
+      if (!stillValid) detected++;
       completed++;
     }
 
@@ -474,9 +483,26 @@ async function runExperiment() {
       `Error introducido: ${errorLabel}.`,
       `Pruebas realizadas: ${trials}.`,
       `Errores detectados: ${detected} de ${trials} (${percentage} %).`,
-      `Errores no detectados: ${missed} de ${trials}.`
+      `Errores no detectados: ${missed} de ${trials}.`,
+      "",
+      `Ejemplo de esta ejecución:`,
+      `Código sintético válido: ${example.validCode}.`,
+      `Después del error: ${example.corrupted}.`,
+      example.detected
+        ? "Resultado: el validador lo rechazó y detectó el error."
+        : "Resultado: el validador lo aceptó; este error no fue detectado."
     ].join("\n");
     experimentResult.hidden = false;
+    const explanations = {
+      dni: "DNI/NIE: se comprueba que la letra corresponda al resto módulo 23. Esto detecta cambios simples, pero no demuestra que el número esté asignado; varios cambios pueden conservar el mismo resto.",
+      isbn10: "ISBN-10: la suma ponderada debe ser divisible entre 11. Detecta cualquier cambio de un carácter y los intercambios de dígitos contiguos; varios cambios pueden compensarse.",
+      isbn13: "ISBN-13: los pesos alternos 1 y 3 producen una suma que debe acabar en múltiplo de 10. Detecta cambios simples, pero algunas transposiciones no alteran la suma, por ejemplo ciertos dígitos que difieren en 5.",
+      ean13: "EAN-13: usa la misma suma ponderada que ISBN-13, sin la restricción de prefijo de ISBN. Detecta cambios simples; algunas transposiciones pueden dejar intacto el control.",
+      iban: "IBAN: el control módulo 97 sí funciona para los errores probados. Un cambio de un dígito o el intercambio de dos dígitos contiguos distintos cambia el resto esperado (1) y se detecta. La prueba solo comprueba el módulo 97: no verifica que la cuenta exista ni todos los controles bancarios internos del BBAN español.",
+      luhn: "Luhn: el control módulo 10 detecta cualquier cambio de un solo dígito. La mayoría de intercambios contiguos también se detectan, pero 09 ↔ 90 no cambia la suma de Luhn y puede pasar sin ser detectado. Por eso el porcentaje de transposiciones puede ser menor."
+    };
+    experimentExplanation.textContent = explanations[type];
+    experimentExplanation.hidden = false;
     experimentStatus.textContent = "Experimento terminado. Los porcentajes describen solo estas pruebas aleatorias.";
   } catch (error) {
     console.error("Error en el modo experimento:", error);
